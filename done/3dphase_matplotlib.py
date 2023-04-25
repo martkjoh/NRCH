@@ -69,7 +69,6 @@ stab(ax)
 # exc(ax)
 
 
-
 rgba_to_hex = lambda rgba : '#'+''.join([f'{int(v*255):02x}' for v in rgba])
 color = rgba_to_hex(cm.viridis(.25))
 
@@ -128,5 +127,5 @@ save_opt = dict(
 ax.azim=ang[0]
 ax.elev=ang[1]
 
-fig.savefig("surf3.svg", **save_opt)
+fig.savefig("done/fig/surf3.svg", **save_opt)
 plt.show()

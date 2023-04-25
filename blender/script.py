@@ -3,7 +3,9 @@ import math
 import numpy as np
 
 import os
-os.chdir('/home/mjohnsrud/drive/barsoe/blender')
+
+print(os.getcwd())
+os.chdir('/home/mjohnsrud/repos/NRCH/blender')
 
 name = 'from_data'
 
