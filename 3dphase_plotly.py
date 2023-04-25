@@ -60,29 +60,28 @@ fig.add_surface(
 )
 
 
-# N = 1000
-# x = np.linspace(-k/sqrt(2), k/sqrt(2), N)
-# y = np.linspace(0, -th, N)
-# x, y = np.meshgrid(x, y)
-# z = x**2
+N = 1000
+x = np.linspace(-k/sqrt(2), k/sqrt(2), N)
+y = np.linspace(0, -th, N)
+x, y = np.meshgrid(x, y)
+z = x**2
 
-# fig.add_surface(
-#     x=x, y=y, z=z,
-#     showscale=False, 
-#     surfacecolor=z,
-#     colorscale='purples',
-#     contours = {
-#         # "x": {"show": True, "start": -k, "end": k, "size": 0.1},
-#         "y": {"show": True, "start": -th, "end": 0, "size": 0.1},
-#         "z": {"show": True, "start":  0, "end": k, "size": 0.1}
-#     }
-# )
+fig.add_surface(
+    x=x, y=y, z=z,
+    showscale=False, 
+    surfacecolor=z,
+    colorscale='purples',
+    contours = {
+        # "x": {"show": True, "start": -k, "end": k, "size": 0.1},
+        "y": {"show": True, "start": -th, "end": 0, "size": 0.1},
+        "z": {"show": True, "start":  0, "end": k, "size": 0.1}
+    }
+)
 
 
 
 
 fig.update_layout(
-    xaxis_title="...",
     width=2000, 
     height=1000,
     font = {"family" : "Droid Serif"},
@@ -91,7 +90,10 @@ fig.update_layout(
         aspectratio={
             'x' : 3, 'y' : 2, 'z' : 1.
         },
-        aspectmode="manual"
+        aspectmode="manual",
+        xaxis_title="$√u𝜑$",
+        yaxis_title="$r$",
+        zaxis_title="$𝛼$",
     )
 )
 
