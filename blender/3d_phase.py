@@ -32,9 +32,9 @@ def faces_from_data(data, n, mask):
 
 
 def save(data, edges, faces, name):
-    np.savetxt('data'+name+'.csv', data, delimiter=',')
-    np.savetxt('edges'+name+'.csv', edges, delimiter=',', fmt='%i')
-    np.savetxt('faces'+name+'.csv', faces, delimiter=',', fmt='%i')
+    np.savetxt('blender/data'+name+'.csv', data, delimiter=',')
+    np.savetxt('blender/edges'+name+'.csv', edges, delimiter=',', fmt='%i')
+    np.savetxt('blender/faces'+name+'.csv', faces, delimiter=',', fmt='%i')
     
 
 def spin():
