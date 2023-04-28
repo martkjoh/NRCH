@@ -4,18 +4,15 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 from matplotlib import cm, colors, collections
 
-plt.rc("font", family="se|rif", size=16)
+plt.rc("font", family="serif", size=16)
 plt.rc("mathtext", fontset="cm")
 plt.rc("lines", lw=2)
 
 #%%
-
 fig, ax = plt.subplots(1, 3, figsize=(20, 5))
 
-one = 1
-
-phibar = np.linspace(-one, one, 10)
-s = np.linspace(-one, one, 100)
+phibar = np.linspace(-1, 1, 10)
+s = np.linspace(-1, 1, 100)
 
 V = lambda s, p: 1/2 * (p**2 - 1) / (p*s - 1)
 V2 = lambda s, p: 1 - V(s, p)
@@ -30,7 +27,8 @@ ax[1].set_xlabel("$\\sigma$")
 ax[0].set_ylabel("$V$")
 ax[1].set_ylabel("$1 - V$")
 
-
+ax[0].set_ylim(-.1, 1.1)
+ax[1].set_ylim(-.1, 1.1)
 
 sp = lambda s, p: (p - V(s, p) * s) / V2(s, p)
 
@@ -38,25 +36,17 @@ for p in phibar:
     c = (p + 1)/2
     ax[2].plot(s, sp(s,p), color=cm.viridis(c))
 
-ax[2].set_ylim(-1.2, 1.2)
-
+ax[2].set_ylim(-1.1, 1.1)
 ax[2].set_xlabel("$\\sigma$")
 ax[2].set_ylabel("$\\sigma'$")
-
-
-plt.tight_layout()
-
 
 norm = colors.Normalize(vmin=-1, vmax=1)
 cmap = cm.ScalarMappable(norm=norm, cmap=cm.viridis)
 cmap.set_array([])
-
 cb = fig.colorbar(cmap, ax=ax, location="right")
 cb.set_label( label="$\\bar \\varphi$", labelpad=25, rotation=270)
 
-
-fig.savefig('fig/vol.svg',bbox_inches='tight')
-
+fig.savefig('fig/vol.svg')
 
 #%%
 fig, ax = plt.subplots(1, 3, figsize=(20, 5), sharey=True)
@@ -85,20 +75,17 @@ for i, p in enumerate(ps):
 
     ax[ind].plot(0, p, 'kx')
 
-norm = colors.Normalize(vmin=-1, vmax=1)
-cmap = cm.ScalarMappable(norm=norm, cmap=cm.coolwarm)
-cmap.set_array([])
-
-cb = fig.colorbar(cmap, ax=ax, location="right")
-cb.set_label( label="$\\sigma$", labelpad=25, rotation=270)
-
-
 ax[0].set_xlabel("$\\sigma$")
 ax[1].set_xlabel("$\\sigma$")
 ax[2].set_xlabel("$\\sigma$")
 ax[0].set_ylabel("$\\pi$")
 
+norm = colors.Normalize(vmin=-1, vmax=1)
+cmap = cm.ScalarMappable(norm=norm, cmap=cm.coolwarm)
+cmap.set_array([])
+cb = fig.colorbar(cmap, ax=ax, location="right")
+cb.set_label( label="$\\sigma$", labelpad=25, rotation=270)
 
-fig.savefig('fig/tie.svg',bbox_inches='tight')
+fig.savefig('fig/tie.svg')
 
 # %%
