@@ -6,7 +6,7 @@ from matplotlib import animation
 from numba import njit
 
 N = 100
-M = 2_000_000
+M = 4_000_000
 dt = .00004
 
 L = 10
@@ -20,15 +20,11 @@ k = 1
 u = 1
 
 
-
-
-
 i = np.arange(N)
 D2 = np.zeros((N, N))
 D2[i, i] = - 1 / dx**2
 D2[i, (i+1)%N] = 1 / (2*dx**2)
 D2[(i+1)%N, i] = 1 / (2*dx**2)
-
 
 @njit
 def mu(phi, param):
@@ -83,7 +79,7 @@ def make_anim(param = (-1, .2, 0)):
     ax.plot(t, dpt[:,1], label="$\\frac{\mathrm d \\bar \\varphi_2}{\\mathrm d t}$")
     ax.legend()
     print(np.max(dpt))
-    # plt.show()
+
 
     fig, ax = plt.subplots(1, 2, figsize=(40, 20))
     l1, = ax[0].plot([], [], 'r-')
@@ -123,7 +119,6 @@ def make_anim(param = (-1, .2, 0)):
     anim = animation.FuncAnimation(fig, animate,  interval=100, frames=M//skip)
     FFwriter = animation.FFMpegWriter()
     anim.save('done/fig/plot'+name+'.mp4', writer=FFwriter)
-    # plt.show()
 
 
 def test_D():
@@ -144,14 +139,9 @@ def test_D_phi():
     phi[:, 1] = np.cos(2*pi*x)
 
     plt.plot(x, phi[:, 0], 'k')
-    # plt.plot(x, phi[:, 1], 'k--')
-
     plt.plot(x, D2@D2@D2@D2@phi[:, 0], 'r--')
-    # plt.plot(x, D2@phi[:, 1], 'r--')
-
 
     plt.show()
-
 
 
 def test_eps():
@@ -166,15 +156,14 @@ def test_eps():
     plt.plot(x, ((eps@phi.T).T)[:, 0], 'r')
     plt.plot(x, ((eps@phi.T).T)[:, 1], 'r--')
 
-
     plt.show()
 
 
-# test_D_phi()
 
-aa = [0, .5]
-pb = [0, .4, .6, .8]
+aa = [0, .5, .8]
+pb = [0, -.2, -.4, -.6, -.8]
 
 for a in aa:
     for p in pb:
         make_anim(param=(-1, p, a))
+
