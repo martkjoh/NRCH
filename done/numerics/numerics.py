@@ -6,12 +6,12 @@ from matplotlib import animation
 from numba import njit
 
 N = 100
-M = 4_000_000
+M = 10_000_000
 dt = .00004
 
 L = 10
 dx = L / N
-skip = 10000
+skip = 50000
 print(dt/dx**4)
 
 A = .2
@@ -160,7 +160,7 @@ def test_eps():
 
 
 
-aa = [0, .5, .8]
+aa = [0, .4, .8, 1.2]
 pb = [0, -.2, -.4, -.6, -.8]
 
 for a in aa:
