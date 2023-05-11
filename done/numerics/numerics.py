@@ -3,7 +3,11 @@ import matplotlib.pyplot as plt
 
 from numpy import pi, random
 from matplotlib import animation
-from numba import njit
+from numba import njit, objmode
+
+fast = True
+if fast: jit = njit
+else: jit = lambda x : x
 
 N = 100
 M = 10_000_000
@@ -12,13 +16,12 @@ dt = .00004
 L = 10
 dx = L / N
 skip = 50000
-print(dt/dx**4)
+print('dt/dx^4 = %.3f'%(dt/dx**4))
 
 A = .2
 b = 2
 k = 1
 u = 1
-
 
 i = np.arange(N)
 D2 = np.zeros((N, N))
@@ -26,7 +29,8 @@ D2[i, i] = - 1 / dx**2
 D2[i, (i+1)%N] = 1 / (2*dx**2)
 D2[(i+1)%N, i] = 1 / (2*dx**2)
 
-@njit
+
+@jit
 def mu(phi, param):
     r, phibar, a = param
     m = ( r + u * (phi[: ,0]**2 + phi[:, 1]**2) )[:,None] * phi
@@ -36,11 +40,11 @@ def mu(phi, param):
     m += (random.random((N, 2))- 1/2) * b
     return m
 
-@njit
+@jit
 def f(phi, param):
     return D2 @ mu(phi, param)
 
-@njit
+@jit
 def get_x_phi(param):
     r, phibar, a = param
     phi = np.zeros((N, 2))
@@ -49,20 +53,22 @@ def get_x_phi(param):
     phi[:, 1] = A * np.cos(2*pi*x/L*k) 
     return x, phi
 
-@njit
+@jit
 def run_euler(param):
     x, phi = get_x_phi(param)
     phit = np.empty((M//skip, N, 2))
     phit[0] = phi
 
     n1 = M//skip
-    n2 = 10
+    n2 = n1//10
 
     for i in range(1, M//skip):
+        if ((i+1)//n2) - i//n2 == 1: 
+            with objmode(): print("|", end='', flush=True)
         for j in range(0, skip):
             phi = phi + f(phi, param) * dt
         phit[i] = phi
-
+    print('')
     return x, phit
 
 
