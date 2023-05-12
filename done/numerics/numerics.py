@@ -9,9 +9,9 @@ fast = True
 if fast: jit = njit
 else: jit = lambda x : x
 
-N = 100
-M = 4_000_000
-dt = .00004
+N = 140
+M = 10_000_000
+dt = .00001
 
 L = 10
 dx = L / N
@@ -19,7 +19,7 @@ skip = 10000
 print('dt/dx^4 = %.3f'%(dt/dx**4))
 
 A = .2
-b = 2
+b = 4
 k = 1
 u = 1
 
@@ -72,8 +72,8 @@ def run_euler(param):
     return x, phit
 
 
-def make_anim(param = (-1, .2, 0)):
-    r, phibar, a = param
+def make_anim(r, phibar, a):
+    param = (r, phibar, a)
     name = f'r={r}_phibar={phibar}_a={a}'
     x, phit = run_euler(param)
 
@@ -166,10 +166,22 @@ def test_eps():
 
 
 
-aa = [0, .5, .8]
-pb = [0, -.2, -.4, -.6, -.8]
+# aa = [0, .5, .8]
+# pb = [0, -.2, -.4, -.6, -.8]
 
-for a in aa:
-    for p in pb:
-        make_anim(param=(-1, p, a))
+# for a in aa:
+#     for p in pb:
+#         make_anim(param=(-1, p, a))
+
+
+
+ps = [-.9, -.8, -0.73, -.65, -1/np.sqrt(2)]
+aa = [.55, .55, .55, .55, .5]
+param = [[-1, ps[i], aa[i]] for i in range(len(ps))]
+
+from multiprocessing import Pool
+
+with Pool(6) as pool:
+    pool.starmap(make_anim, param)
+
 
