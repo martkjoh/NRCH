@@ -10,19 +10,19 @@ if fast: jit = njit
 else: jit = lambda x : x
 
 N = 200
-M = 1_000_000
-
+M = 200_000_000
 
 L = 10
 dx = L / N
 dt = .4 * (dx)**4
-frames = 100
+frames = 1000
 skip = M // frames + 1
+
 print('dt/dx^4 = %.3f'%(dt/dx**4))
 print('T = %.3f'%(M*dt))
 
-A = .01
-b =  2 * (N/100)**2
+A = 0
+b = 5 * (N/100)**2
 k = 1
 u = 1
 
@@ -90,7 +90,7 @@ def make_anim(r, phibar, a):
     print(np.max(dpt))
 
 
-    fig, ax = plt.subplots(1, 2, figsize=(20, 10))
+    fig, ax = plt.subplots(1, 2, figsize=(10, 5))
     l1, = ax[0].plot([], [], 'r-')
     l2, = ax[0].plot([], [], 'k-')
     l3, = ax[0].plot([], [], 'g-.')
@@ -110,7 +110,6 @@ def make_anim(r, phibar, a):
     l5 = ax[0].text(1, 1.8, 'progress:')
 
     def animate(m):
-
         n1 = M//skip
         n2 = n1//10
         txt = 'progress:' + (m+1)//n2*'|'
@@ -167,25 +166,21 @@ def test_eps():
 
 
 
-make_anim(-1, -1 / np.sqrt(2), .55)
+make_anim(-1, -.4, .1)
 
 
-# aa = [0, .5, .8]
-# pb = [0, -.2, -.4, -.6, -.8]
-
-# for a in aa:
-#     for p in pb:
-#         make_anim(param=(-1, p, a))
-
-
-
-ps = [-.9, -.8, -0.73, -.65, -1/np.sqrt(2)]
-aa = [.55, .5]
+ps = [-.95, -.83, -0.73, -.55]
+aa = [0, .2, .5, .55]
 param = [[-1, p, a] for p in ps for a in aa]
+param.pop(15)
+param.pop(10)
+param.pop(7)
+param.pop(3)
+param.append([-1, -1/np.sqrt(2), .5])
+
 
 from multiprocessing import Pool
-
-# with Pool(10) as pool:
-#     pool.starmap(make_anim, param)
+with Pool(len(param)) as pool:
+    pool.starmap(make_anim, param)
 
 
