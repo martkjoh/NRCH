@@ -9,17 +9,17 @@ fast = True
 if fast: jit = njit
 else: jit = lambda x : x
 
-N = 140
-M = 100_000
-dt = .00001
+N = 200
+M = 1_000_000
+dt = .000001
 
 L = 10
 dx = L / N
-skip = 500
+skip = 10_000
 print('dt/dx^4 = %.3f'%(dt/dx**4))
 
-A = .2
-b = 4
+A = 0
+b = 20
 k = 1
 u = 1
 
@@ -81,13 +81,13 @@ def make_anim(r, phibar, a):
     pt = np.einsum('txi->ti',phit)
     dpt = (pt[1:] - pt[:-1])/dt
     t = np.linspace(0, M//skip*dt, M//skip-1)
-    ax.plot(t, dpt[:,0], label="$\\frac{\mathrm d \\bar \\varphi_1}{\\mathrm d t}$")
-    ax.plot(t, dpt[:,1], label="$\\frac{\mathrm d \\bar \\varphi_2}{\\mathrm d t}$")
+    ax.plot(t, dpt[:,0], label="$\\frac{\\mathrm{d} \\bar \\varphi_1}{\\mathrm{d} t}$")
+    ax.plot(t, dpt[:,1], label="$\\frac{\\mathrm{d} \\bar \\varphi_2}{\\mathrm{d} t}$")
     ax.legend()
     print(np.max(dpt))
 
 
-    fig, ax = plt.subplots(1, 2, figsize=(40, 20))
+    fig, ax = plt.subplots(1, 2, figsize=(20, 10))
     l1, = ax[0].plot([], [], 'r-')
     l2, = ax[0].plot([], [], 'k-')
     l3, = ax[0].plot([], [], 'g-.')
@@ -167,7 +167,7 @@ def test_eps():
 
 
 
-make_anim(-1, .6, .7)
+make_anim(-1, -1 / np.sqrt(2), -.5)
 
 
 # aa = [0, .5, .8]
