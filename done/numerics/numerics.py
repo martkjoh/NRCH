@@ -10,16 +10,19 @@ if fast: jit = njit
 else: jit = lambda x : x
 
 N = 200
-M = 100_000_000
-dt = .000001
+M = 1_000_000
+
 
 L = 10
 dx = L / N
-skip = 100_000
+dt = .4 * (dx)**4
+frames = 100
+skip = M // frames + 1
 print('dt/dx^4 = %.3f'%(dt/dx**4))
+print('T = %.3f'%(M*dt))
 
 A = .01
-b = 40
+b =  2 * (N/100)**2
 k = 1
 u = 1
 
@@ -133,18 +136,7 @@ def make_anim(r, phibar, a):
     anim = animation.FuncAnimation(fig, animate,  interval=100, frames=M//skip)
     FFwriter = animation.FFMpegWriter()
     plt.show()
-    # anim.save('done/fig/plot'+name+'.mp4', writer=FFwriter)
-
-
-def test_D():
-    x = np.linspace(0, (L-dx), N)
-    y = np.sin(2*pi*x)
-
-    plt.plot(x, y)
-    D4 = D@D@D@D
-    plt.plot(x, D@y)
-
-    plt.show()
+    anim.save('done/fig/plot'+name+'.mp4', writer=FFwriter)
 
 
 def test_D_phi():
@@ -175,7 +167,7 @@ def test_eps():
 
 
 
-make_anim(-1, -1 / np.sqrt(2), .5)
+make_anim(-1, -1 / np.sqrt(2), .55)
 
 
 # aa = [0, .5, .8]
