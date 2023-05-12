@@ -9,16 +9,16 @@ fast = True
 if fast: jit = njit
 else: jit = lambda x : x
 
-N = 100
-M = 10_000_000
-dt = .00004
+N = 70
+M = 20_000_000
+dt = .0002
 
 L = 10
 dx = L / N
-skip = 50000
+skip = 20000
 print('dt/dx^4 = %.3f'%(dt/dx**4))
 
-A = .2
+A = .02
 b = 2
 k = 1
 u = 1
@@ -164,12 +164,17 @@ def test_eps():
 
     plt.show()
 
-
+# make_anim((-1, -.5, .2))
 
 aa = [0, .4, .8, 1.2]
 pb = [0, -.2, -.4, -.6, -.8]
+par = [[-1, b, a] for a in aa for b in pb]
 
-for a in aa:
-    for p in pb:
-        make_anim(param=(-1, p, a))
+func = lambda param : make_anim(param=param)
+
+from multiprocessing import Pool
+
+with Pool(14) as pool:
+    pool.map(make_anim, par)
+
 
