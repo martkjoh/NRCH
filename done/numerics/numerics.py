@@ -9,17 +9,17 @@ fast = True
 if fast: jit = njit
 else: jit = lambda x : x
 
-N = 200
-M = 100_000_000
-dt = .000001
+N = 150
+M = 10_000_000
+dt = .000008
 
 L = 10
 dx = L / N
-skip = 100_000
+skip = 20_000
 print('dt/dx^4 = %.3f'%(dt/dx**4))
 
 A = .01
-b = 40
+b = 1e4*dt * 1
 k = 1
 u = 1
 
@@ -50,7 +50,7 @@ def get_x_phi(param):
     phi = np.zeros((N, 2))
     x = np.linspace(0, L - dx, N)
     phi[:, 0] = A * np.sin(2*pi*x/L*k) + phibar
-    phi[:, 1] = A * np.cos(2*pi*x/L*k) 
+    phi[:, 1] = A * np.cos(2*pi*x/L*k)
     return x, phi
 
 @jit
@@ -63,7 +63,7 @@ def run_euler(param):
     n2 = n1//10
 
     for i in range(1, M//skip):
-        if ((i+1)//n2) - i//n2 == 1: 
+        if ((i+1)//n2) - i//n2 == 1:
             with objmode(): print("|", end='', flush=True)
         for j in range(0, skip):
             phi = phi + f(phi, param) * dt
@@ -133,7 +133,7 @@ def make_anim(r, phibar, a):
     anim = animation.FuncAnimation(fig, animate,  interval=100, frames=M//skip)
     FFwriter = animation.FFMpegWriter()
     plt.show()
-    # anim.save('done/fig/plot'+name+'.mp4', writer=FFwriter)
+    anim.save('done/fig/plot'+name+'.mp4', writer=FFwriter)
 
 
 def test_D():
@@ -175,7 +175,7 @@ def test_eps():
 
 
 
-make_anim(-1, -1 / np.sqrt(2), .5)
+make_anim(-1, -1 / np.sqrt(2) + .2, .51)
 
 
 # aa = [0, .5, .8]
@@ -187,13 +187,13 @@ make_anim(-1, -1 / np.sqrt(2), .5)
 
 
 
-# ps = [-.9, -.8, -0.73, -.65, -1/np.sqrt(2)]
-# aa = [.55, .55, .55, .55, .5]
-# param = [[-1, ps[i], aa[i]] for i in range(len(ps))]
+ps = [-.9, -.8, -0.73, -.65, -1/np.sqrt(2)]
+aa = [.55, .5]
+param = [[-1, p, a] for p in ps for a in aa]
 
-# from multiprocessing import Pool
+from multiprocessing import Pool
 
-# with Pool(6) as pool:
+# with Pool(10) as pool:
 #     pool.starmap(make_anim, param)
 
 
