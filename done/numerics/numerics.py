@@ -10,16 +10,16 @@ if fast: jit = njit
 else: jit = lambda x : x
 
 N = 200
-M = 1_000_000
+M = 100_000_000
 dt = .000001
 
 L = 10
 dx = L / N
-skip = 10_000
+skip = 100_000
 print('dt/dx^4 = %.3f'%(dt/dx**4))
 
-A = 0
-b = 20
+A = .01
+b = 40
 k = 1
 u = 1
 
@@ -104,8 +104,16 @@ def make_anim(r, phibar, a):
     prange = 1.5
     ax[1].set_xlim(-prange, prange)
     ax[1].set_ylim(-prange, prange)
+    l5 = ax[0].text(1, 1.8, 'progress:')
 
     def animate(m):
+
+        n1 = M//skip
+        n2 = n1//10
+        txt = 'progress:' + (m+1)//n2*'|'
+        l5.set_text(txt)
+
+
         p = phit[m].T
         l1.set_data(x, p[0])
         l2.set_data(x, p[1])
@@ -116,7 +124,7 @@ def make_anim(r, phibar, a):
 
         m1.set_data([*p[1], p[1, 0]], [*p[0], p[0, 0]])
 
-        return l1, l2, l3, l4, m1
+        return l1, l2, l3, l4, l5, m1
 
     time_per_step = skip * dt
     fpms = 10 * 1000
@@ -167,7 +175,7 @@ def test_eps():
 
 
 
-make_anim(-1, -1 / np.sqrt(2), -.5)
+make_anim(-1, -1 / np.sqrt(2), .5)
 
 
 # aa = [0, .5, .8]
