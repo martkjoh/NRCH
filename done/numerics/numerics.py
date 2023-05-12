@@ -53,7 +53,7 @@ def get_x_phi(param):
     phi = np.zeros((N, 2))
     x = np.linspace(0, L - dx, N)
     phi[:, 0] = A * np.sin(2*pi*x/L*k) + phibar
-    phi[:, 1] = A * np.cos(2*pi*x/L*k) 
+    phi[:, 1] = A * np.cos(2*pi*x/L*k)
     return x, phi
 
 @jit
@@ -66,7 +66,7 @@ def run_euler(param):
     n2 = n1//10
 
     for i in range(1, M//skip):
-        if ((i+1)//n2) - i//n2 == 1: 
+        if ((i+1)//n2) - i//n2 == 1:
             with objmode(): print("|", end='', flush=True)
         for j in range(0, skip):
             phi = phi + f(phi, param) * dt
@@ -179,13 +179,13 @@ make_anim(-1, -1 / np.sqrt(2), .55)
 
 
 
-# ps = [-.9, -.8, -0.73, -.65, -1/np.sqrt(2)]
-# aa = [.55, .55, .55, .55, .5]
-# param = [[-1, ps[i], aa[i]] for i in range(len(ps))]
+ps = [-.9, -.8, -0.73, -.65, -1/np.sqrt(2)]
+aa = [.55, .5]
+param = [[-1, p, a] for p in ps for a in aa]
 
-# from multiprocessing import Pool
+from multiprocessing import Pool
 
-# with Pool(6) as pool:
+# with Pool(10) as pool:
 #     pool.starmap(make_anim, param)
 
 
