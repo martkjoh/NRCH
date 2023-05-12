@@ -10,12 +10,12 @@ if fast: jit = njit
 else: jit = lambda x : x
 
 N = 140
-M = 10_000_000
+M = 100_000
 dt = .00001
 
 L = 10
 dx = L / N
-skip = 20000
+skip = 500
 print('dt/dx^4 = %.3f'%(dt/dx**4))
 
 A = .2
@@ -124,7 +124,8 @@ def make_anim(r, phibar, a):
 
     anim = animation.FuncAnimation(fig, animate,  interval=100, frames=M//skip)
     FFwriter = animation.FFMpegWriter()
-    anim.save('done/fig/plot'+name+'.mp4', writer=FFwriter)
+    plt.show()
+    # anim.save('done/fig/plot'+name+'.mp4', writer=FFwriter)
 
 
 def test_D():
@@ -166,6 +167,9 @@ def test_eps():
 
 
 
+make_anim(-1, .6, .7)
+
+
 # aa = [0, .5, .8]
 # pb = [0, -.2, -.4, -.6, -.8]
 
@@ -175,13 +179,13 @@ def test_eps():
 
 
 
-ps = [-.9, -.8, -0.73, -.65, -1/np.sqrt(2)]
-aa = [.55, .55, .55, .55, .5]
-param = [[-1, ps[i], aa[i]] for i in range(len(ps))]
+# ps = [-.9, -.8, -0.73, -.65, -1/np.sqrt(2)]
+# aa = [.55, .55, .55, .55, .5]
+# param = [[-1, ps[i], aa[i]] for i in range(len(ps))]
 
-from multiprocessing import Pool
+# from multiprocessing import Pool
 
-with Pool(6) as pool:
-    pool.starmap(make_anim, param)
+# with Pool(6) as pool:
+#     pool.starmap(make_anim, param)
 
 
