@@ -1,30 +1,33 @@
 import numpy as np
-import matplotlib.pyplot as plt
 
 from numpy import pi, random
-from matplotlib import animation
 from numba import njit, objmode
 
 fast = True
 if fast: jit = njit
 else: jit = lambda x : x
 
-N = 200
-M = 200_000_000
+N = 100
+M = 4_000_000
 
-L = 10
+L = 100
 dx = L / N
-dt = .4 * (dx)**4
-frames = 1000
-skip = M // frames + 1
+dt = .04 * (dx)**4
+frames = 100
+skip = M // frames
 
 print('dt/dx^4 = %.3f'%(dt/dx**4))
 print('T = %.3f'%(M*dt))
 
-A = 0
-b = 5 * (N/100)**2
+b = .02
+b = b * (N/100)**2
+
+param_names = ['N', 'M', 'L', 'dt', 'b', 'r', 'phibar', 'a']
+
+# Initial conditions
+A = .2
 k = 1
-u = 1
+
 
 i = np.arange(N)
 D2 = np.zeros((N, N))
@@ -35,13 +38,27 @@ D2[(i+1)%N, i] = 1 / (2*dx**2)
 
 @jit
 def mu(phi, param):
-    r, phibar, a = param
-    m = ( r + u * (phi[: ,0]**2 + phi[:, 1]**2) )[:,None] * phi
+    N, M, L, dt, b, r, phibar, a = param
+    m = ( r + (phi[: ,0]**2 + phi[:, 1]**2) )[:,None] * phi
     m += - D2@phi
     m[:, 0] += a *phi[:, 1]
     m[:, 1] -= a *phi[:, 0]
-    m += (random.random((N, 2))- 1/2) * b
+
+    u1 = np.random.random((N))
+    u2 = np.random.random((N))
+    z1 = np.sqrt(- 2 * np.log(u1)) * np.cos(u2)
+    z2 = np.sqrt(- 2 * np.log(u1)) * np.sin(u2)
+    m[:, 0] += z1 * b
+    m[:, 0] += z2 * b
+
     return m
+
+def F(phi, param):
+    N, M, L, dt, b, r, phibar, a = param
+    p2 = phi[: ,0]**2 + phi[:, 1]**2
+    dp = D2@phi
+    dp2 = dp[:, 0]**2 + dp[:, 1]**2
+    return 1/2*r*p2 + 1/2*dp2 + p2**2 / 4
 
 @jit
 def f(phi, param):
@@ -49,7 +66,7 @@ def f(phi, param):
 
 @jit
 def get_x_phi(param):
-    r, phibar, a = param
+    N, M, L, dt, b, r, phibar, a = param
     phi = np.zeros((N, 2))
     x = np.linspace(0, L - dx, N)
     phi[:, 0] = A * np.sin(2*pi*x/L*k) + phibar
@@ -57,14 +74,9 @@ def get_x_phi(param):
     return x, phi
 
 @jit
-def run_euler(param):
-    x, phi = get_x_phi(param)
-    phit = np.empty((M//skip, N, 2))
-    phit[0] = phi
-
+def loop(phit, param, phi):
     n1 = M//skip
     n2 = n1//10
-
     for i in range(1, M//skip):
         if ((i+1)//n2) - i//n2 == 1:
             with objmode(): print("|", end='', flush=True)
@@ -72,115 +84,47 @@ def run_euler(param):
             phi = phi + f(phi, param) * dt
         phit[i] = phi
     print('')
-    return x, phit
 
+def run_euler(param):
+    x, phi = get_x_phi(param)
 
-def make_anim(r, phibar, a):
-    param = (r, phibar, a)
-    name = f'r={r}_phibar={phibar}_a={a}'
-    x, phit = run_euler(param)
+    phit = np.empty((M//skip, N, 2))
+    phit[0] = phi
 
-    fig, ax = plt.subplots()
-    pt = np.einsum('txi->ti',phit)
-    dpt = (pt[1:] - pt[:-1])/dt
-    t = np.linspace(0, M//skip*dt, M//skip-1)
-    ax.plot(t, dpt[:,0], label="$\\frac{\\mathrm{d} \\bar \\varphi_1}{\\mathrm{d} t}$")
-    ax.plot(t, dpt[:,1], label="$\\frac{\\mathrm{d} \\bar \\varphi_2}{\\mathrm{d} t}$")
-    ax.legend()
-    print(np.max(dpt))
+    loop(phit, param, phi)
 
+    write_file(phit, param)
 
-    fig, ax = plt.subplots(1, 2, figsize=(10, 5))
-    l1, = ax[0].plot([], [], 'r-')
-    l2, = ax[0].plot([], [], 'k-')
-    l3, = ax[0].plot([], [], 'g-.')
-    l4, = ax[0].plot([], [], 'b')
-    ax[0].plot([0, L], [phibar, phibar], 'r--')
-    ax[0].plot([0, L], [0, 0], 'k--')
-    ax[0].set_xlim(0, L)
-    ax[0].set_ylim(-2, 2)
+def filename_from_param(param):
+    return ''.join(param_names[i] + '=' + str(param[i]) + '_' for i in range(len(param_names)))[:-1]
 
-    m1, = ax[1].plot([], [], 'r-..')
-    ax[1].plot(0, phibar, 'ro')
-    t = np.linspace(0, 2*pi)
-    ax[1].plot(np.cos(t), np.sin(t), 'k--')
-    prange = 1.5
-    ax[1].set_xlim(-prange, prange)
-    ax[1].set_ylim(-prange, prange)
-    l5 = ax[0].text(1, 1.8, 'progress:')
-
-    def animate(m):
-        n1 = M//skip
-        n2 = n1//10
-        txt = 'progress:' + (m+1)//n2*'|'
-        l5.set_text(txt)
-
-
-        p = phit[m].T
-        l1.set_data(x, p[0])
-        l2.set_data(x, p[1])
-        p2 = np.sqrt( p[0]**2 + p[1]**2 )
-        l3.set_data(x, p2)
-        A = np.sqrt(-r - (2*np.pi/L*k)**2)
-        l4.set_data([0, L], [np.sqrt(A)])
-
-        m1.set_data([*p[1], p[1, 0]], [*p[0], p[0, 0]])
-
-        return l1, l2, l3, l4, l5, m1
-
-    time_per_step = skip * dt
-    fpms = 10 * 1000
-
-
-    anim = animation.FuncAnimation(fig, animate,  interval=100, frames=M//skip)
-    FFwriter = animation.FFMpegWriter()
-    plt.show()
-    anim.save('done/fig/plot'+name+'.mp4', writer=FFwriter)
-
-
-def test_D_phi():
-    phi = np.zeros((N, 2))
-    x = np.linspace(0, L - dx, N)
-    phi[:, 0] = np.sin(2*pi*x)
-    phi[:, 1] = np.cos(2*pi*x)
-
-    plt.plot(x, phi[:, 0], 'k')
-    plt.plot(x, D2@D2@D2@D2@phi[:, 0], 'r--')
-
-    plt.show()
-
-
-def test_eps():
-    phi = np.zeros((N, 2))
-    x = np.linspace(0, L - dx, N)
-    phi[:, 0] = np.sin(x)
-    phi[:, 1] = np.cos(x)
-
-    plt.plot(x, phi[:, 0], 'k')
-    plt.plot(x, phi[:, 1], 'k-k-')
-
-    plt.plot(x, ((eps@phi.T).T)[:, 0], 'r')
-    plt.plot(x, ((eps@phi.T).T)[:, 1], 'r--')
-
-    plt.show()
+def write_file(phit, param):
+    N, M, L, dt, b, r, phibar, a = param
+    filename = filename_from_param(param)
+    np.savetxt('data/'+filename+'.txt', phit.reshape((frames, 2*N)), comments='')
 
 
 
-make_anim(-1, -.4, .1)
 
 
-ps = [-.95, -.83, -0.73, -.55]
-aa = [0, .2, .5, .55]
-param = [[-1, p, a] for p in ps for a in aa]
-param.pop(15)
-param.pop(10)
-param.pop(7)
-param.pop(3)
-param.append([-1, -1/np.sqrt(2), .5])
+r, phibar, a = -1, -.8, .11
+param = N, M, L, dt, b, r, phibar, a
+run_euler(param)
+# make_anim(param)
+# print(D2)
+# ps = [-.95, -.83, -0.73, -.55]
+# aa = [0, .2, .5, .55]
+# param = [[-1, p, a] for p in ps for a in aa]
+# param.pop(15)
+# param.pop(10)
+# param.pop(7)
+# param.pop(3)
+# param.append([-1, -1/np.sqrt(2), .5])
 
 
-from multiprocessing import Pool
-with Pool(len(param)) as pool:
-    pool.starmap(make_anim, param)
+# from multiprocessing import Pool
+# with Pool(len(param)) as pool:
+#     pool.starmap(make_anim, param)
 
 
+plot_all()

@@ -85,7 +85,7 @@ cmap = cm.ScalarMappable(norm=norm, cmap=cm.coolwarm)
 cmap.set_array([])
 cb = fig.colorbar(cmap, ax=ax, location="right")
 cb.set_label( label="$\\sigma$", labelpad=25, rotation=270)
-
+plt.show()
 fig.savefig('fig/tie.svg')
 
 # %%
