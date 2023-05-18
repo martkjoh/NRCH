@@ -11,6 +11,17 @@ plt.rc("lines", lw=2)
 
 
 param_names = ['N', 'M', 'L', 'dt', 'b', 'r', 'phibar', 'a']
+param_names = ["u, -r", "phibar", "a", "b"]
+
+
+N = 200
+M = 10_000_000
+L = 10
+dx = L / N
+dt = .1 * (dx)**4
+frames = 100
+skip = M // frames
+
 
 def filename_from_param(param):
     return ''.join(param_names[i] + '=' + str(param[i]) + '_' for i in range(len(param_names)))[:-1]
@@ -40,36 +51,31 @@ def param_from_dict(param_dict):
     return [param_dict[key] for key in param_names]
 
 def param_from_filename(filename):
-    N, M, L, dt, b, r, phibar, a =  param_from_dict(param_dict_from_filename(filename))
-    N, M = int(N), int(M)
-    param = (N, M, L, dt, b, r, phibar, a)
-    return param
-
+    return param_from_dict(param_dict_from_filename(filename))
 
 
 def load_file(filename):
     file = 'data/'+filename+'.txt'
     param = param_from_filename(filename)
-    N, M, L, dt, b, r, phibar, a = param
+    u, phibar, a, b  = param
     phit = np.loadtxt(file)
     frames = len(phit)
-    phit = phit.reshape((frames, N, 2))
+    phit = phit.reshape((frames, 2, N))
     x = np.linspace(0, L, N)
     return x, phit, param
 
 def make_anim(filename):
     x, phit, param = load_file(filename)
-    N, M, L, dt, b, r, phibar, a = param
+    u, phibar, a, b = param
 
     fig, ax = plt.subplots()
-    pt = np.einsum('txi->ti',phit)
+    pt = np.einsum('tix->ti', phit)
     dpt = (pt[1:] - pt[:-1])/dt
     frames = len(phit)
     t = np.linspace(0, frames*dt, frames-1)
     ax.plot(t, dpt[:,0], label="$\\frac{\\mathrm{d} \\bar \\varphi_1}{\\mathrm{d} t}$")
     ax.plot(t, dpt[:,1], label="$\\frac{\\mathrm{d} \\bar \\varphi_2}{\\mathrm{d} t}$")
     ax.legend()
-    print(np.max(dpt))
 
 
     fig, ax = plt.subplots(1, 2, figsize=(10, 5))
@@ -103,10 +109,10 @@ def make_anim(filename):
         txt = 'progress:' + (m+1)//n2*'|'
         l5.set_text(txt)
 
-        p = phit[m].T
+        p = phit[m]
         l1.set_data(x, p[0])
         l2.set_data(x, p[1])
-        p2 = np.sqrt( p[0]**2 + p[1]**2 ) 
+        # p2 = np.sqrt( p[:, 0]**2 + p[:, 1]**2 ) 
         # l3.set_data(x, F(phit[m], param))
         # l4.set_data(x, mu(phit[m], param)[:, 1])
 
@@ -115,16 +121,14 @@ def make_anim(filename):
         return l1, l2, l3, l4, l5, m1
 
     anim = animation.FuncAnimation(fig, animate,  interval=100, frames=frames)
-    FFwriter = animation.FFMpegWriter()
     plt.show()
+    # FFwriter = animation.FFMpegWriter() 
     # anim.save('done/fig/plot'+name+'.mp4', writer=FFwriter)
 
 
 def plot_all():
     fnames = get_all_filenames_in_folder("data/")
     [make_anim(filename[:-4]) for filename in fnames ]
-
-
 
 
 plot_all()
