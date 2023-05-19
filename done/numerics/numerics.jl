@@ -1,16 +1,11 @@
-using Random
 using DelimitedFiles
-using Base.Threads
+using Random
 using BenchmarkTools
 using Tullio
-using StaticArrays
+using LoopVectorization
 
-using TimerOutputs
-
-tmr = TimerOutput();
-
-const N = 50
-const M = 1_000_000
+const N = 200
+const M = 100_000
 const L = 10
 const dx = L / N
 const dt = .1 * (dx)^4
@@ -18,14 +13,7 @@ const frames = 100
 const skip = div(M, frames)
 
 print("T = ", M*dt, '\n')
-param_names = ["u, -r", "phibar", "a", "b"]
-
-
-
-# Initial conditions
-A = 0.1
-k = 1
-
+param_names = ["u, -r", "bφ", "a", "b"]
 
 i = range(1, N)
 DD = zeros((N, N))
@@ -35,118 +23,94 @@ for i in range(1, N)
     DD[i%N + 1, i] = 1 / dx^2
 end
 
-D2 = DD
-D2dt = DD*dt
-eps = [0 .1; -.1 0]
+∇² = DD
+∇²dt = DD*dt
+eps = [0 .1; -.1 0] 
 
-
-function euler1!(dphi, phi, temp, param)
-    u, phibar, a, b = param
-    @. dphi = - u * phi
-    @. @views dphi += u * (phi[:,1]^2 + phi[:,2]^2 ) * phi
-    dphi .-= D2 * phi
-    @. @views dphi[:, 1] += a * phi[:, 2]
-    @. @views dphi[:, 2] -= a * phi[:, 1]
+function euler1!(
+    δφ::Array{Float64, 2}, 
+    φ::Array{Float64, 2}, 
+    temp::Array{Float64, 2}, 
+    param::NTuple{4, Float64}
+    )
+    u, bφ, α, β = param
     randn!(temp)
-    @. dphi += temp * b
-    dphi .= D2dt * dphi
+
+    @turbo @. δφ = - u * φ
+    @turbo @. @views δφ += u * (φ[:,1]^2 + φ[:,2]^2 ) * φ
+    @turbo δφ .-= ∇² * φ
+    @turbo @. @views δφ[:, 1] += α * φ[:, 2]
+    @turbo @. @views δφ[:, 2] -= α * φ[:, 1]
+    @turbo @. δφ += β * temp
+    @turbo δφ .= ∇²dt * δφ
 end
 
-function euler2!(dphi, phi, temp, param)
-    u, phibar, a, b = param
-    @tullio dphi[x, i] += u*(-1 + ( phi[x, j] * phi[x, j] ) )* phi[x, i]
-    @tullio dphi[x, i] += -D2[x, y] * phi[y, i]
-    @tullio dphi[x, i] += a*eps[i, j] * phi[x, j]
+function euler2!(
+    δφ::Array{Float64, 2}, 
+    φ::Array{Float64, 2}, 
+    temp::Array{Float64, 2}, 
+    param::NTuple{4, Float64}
+    )
+    u, bφ, a, β = param
     randn!(temp)
-    @tullio dphi[x,i] += b * temp[x, i]
-    @tullio dphi[x, i] = D2[x, y] * dphi[y, i]  * dt
+    
+    @tullio δφ[x, i] = u*(-1 + ( φ[x, j] * φ[x, j] ) )* φ[x, i]
+    @tullio δφ[x, i] += -∇²[x, y] * φ[y, i]
+    @tullio δφ[x, i] += α * eps[i, j] * φ[x, j]
+    @tullio δφ[x, i] += β * temp[x, i]
+    @tullio δφ[x, i] = ∇²[x, y] * δφ[y, i] * dt
 end
-
-
-function euler3!(dphi, phi, temp, param)
-    u, phibar, a, b = param
-    @tullio dphi[x, i] += u * (-1 + ( phi[x, j] * phi[x, j] ) ) * phi[x, i]
-    dphi .-=  D2 * phi
-    @tullio dphi[x, i] += a * eps[i, j] * phi[x, j]
-    randn!(temp)
-    @. dphi += temp * b
-    dphi .= D2 * dphi * dt
-end
-
 
 function check(φ, i)
     n = frames//10
-    if sum(isnan.(φ))!=0
+    if any(isnan, φ)
         throw(ErrorException("Error, NaN detected" ))
     end
-
     if (div(i,n)) - div(i-1,n) == 1
         print("\r"*"|"^div(i,n))
     end
 end
 
-
-
 function loop(param)
-    n1 = M//skip
-    n2 = n1//10
-    
-    x = LinRange(0, L - dx, N)
-    phi = [(A .* sin.(2*pi*x/L*k) .+ phibar) A .* cos.(2*pi*x/L*k)]
-    # phi = zeros(N, 2)
-    phit = zeros(div(M, skip), N, 2)
-    phit[1,:,:] .= phi
-    dphi = zeros(N, 2)
+    φt = zeros(frames, N, 2)
+    φ = zeros(N, 2)
+    δφ = zeros(N, 2)
     temp = zeros(N, 2)
-    
-    for i in axes(phit, 1)[2:end]
 
+    φ[:, 1] .= bφ
+    φt[1,:,:] .= φ
+    
+    for i in axes(φt, 1)[2:end]
         for j in 1:skip
-            @timeit tmr "eul1" euler1!(dphi, phi, temp, param)
-            # @timeit tmr "eul2" euler2!(dphi, phi, temp, param)
-            # @timeit tmr "eul3" euler3!(dphi, phi, temp, param)
-            phi .+= dphi
+            euler1!(δφ, φ, temp, param)
+            # euler2!(δφ, φ, temp, param)
+            φ .+= δφ
         end
-        check(phi, i)
-        phit[i,:,:] .= phi
+        check(φ, i)
+        φt[i,:,:] .= φ
     end
     print('\n')
-    return phit
+    return φt
 end
 
-
-function write_file(phit, param)
+function write_file(φt, param)
     filename = join(
         param_names[i] * '=' * string(param[i]) * '_' 
         for i in range(1, length(param_names))
         )[1:end-1]
-    writedlm("data/"*filename*".txt", reshape(phit, (frames, 2*N)))
+    writedlm("data/"*filename*".txt", reshape(φt, (frames, 2*N)))
 end
-
 
 function run_euler(param)
-    phit = loop(param)
-    write_file(phit, param)
+    φt = loop(param)
+    # write_file(φt, param)
+    return
 end
 
-a = 0.
-phibar = -.8
+α = 0.
+bφ = -.8
 u = 10.
-b = 0.1
+β = 0.1
 
-param = u, phibar, a, b 
-@time run_euler(param)
-# pprof()
-
-# a = LinRange(4, 6, 12)
-# phibar = .5
-
-# function run(a)
-#     param = N, M, L, dt, b, r, phibar, a
-#     run_euler(param)
-# end
-
-# @time @threads for b in a
-#     run(b)
-# end
- 
+param = (u, bφ, α, β)
+@time run_euler(param);

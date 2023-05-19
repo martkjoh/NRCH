@@ -1,8 +1,9 @@
 using DelimitedFiles
 using Base.Threads
+using BenchmarkTools
 
 const N = 200
-const M = 100_000_000
+const M = 100_000
 const L = 10
 const dx = L / N
 const dt = .1 * (dx)^4
@@ -24,12 +25,12 @@ function euler!(
     )
     
     u, bφ, a, β = param
-    @inbounds for i in 1:N #axes(φ,1)
+    @inbounds for i in axes(φ,1)
         @views ruφ² = u * (-1 + (φ[i, 1]^2 + φ[i, 2]^2 ))
         @views μ[i, 1] = ruφ² * φ[i, 1] + a * φ[i, 2] - ∇²(φ[:, 1], dx, i) + β*randn(Float64)
         @views μ[i, 2] = ruφ² * φ[i, 2] - a * φ[i, 1] - ∇²(φ[:, 2], dx, i) + β*randn(Float64) 
     end
-    @inbounds for i in 1:N #axes(φ,1)
+    @inbounds for i in axes(φ,1)
         @views δφ[i, 1] = ∇²(μ[:, 1], dx, i) * dt
         @views δφ[i, 2] = ∇²(μ[:, 2], dx, i) * dt
     end
@@ -38,7 +39,7 @@ end
 
 function check(φ, i)
     n = frames//10
-    if sum(isnan.(φ))!=0
+    if any(isnan, φ)
         throw(ErrorException("Error, NaN detected" ))
     end
 
@@ -47,13 +48,15 @@ function check(φ, i)
     end
 end
 
-function loop!(
-    φt::Array{Float64, 3}, 
-    φ::Array{Float64, 2}, 
-    δφ::Array{Float64, 2}, 
-    μ::Array{Float64, 2},
-    param::NTuple{4, Float64}
-    )
+function loop!(param::NTuple{4, Float64})
+    
+    φ = zeros(N, 2)
+    φt = zeros(frames, N, 2)
+    μ = zeros(N, 2)
+    δφ = zeros(N, 2)
+    
+    φ[:,1] .= bφ
+    φt[1,:,:] .= φ
     
     for i in axes(φt, 1)[2:end]
         for j in 1:skip
@@ -63,22 +66,16 @@ function loop!(
         check(φ, i)
         φt[i,:,:] .= φ
     end
+    
     print('\n')
     return φt
 end
 
 
 function run_euler(param::NTuple{4, Float64})
-    u, bφ, a, β = param
-    φ = zeros(N, 2)
-    φ[:, 1] .= bφ
-    φt = zeros(frames, N, 2)
-    φt[1,:,:] .= φ
-    μ = zeros(N, 2)
-    δφ = zeros(N, 2)
-    
-    loop!(φt, φ, μ, δφ, param)
-    write_file(φt, param)
+    loop!(param)
+    # write_file(φt, param)
+    return
 end
 
 ##############
@@ -98,18 +95,18 @@ end
 u = 10.
 β = 0.5
 
-# bφ = -1/sqrt(2)
-# α = 6.
-# param = (u, bφ, α, β)
-# @time run_euler(param)
+bφ = -1/sqrt(2)
+α = 6.
+param = (u, bφ, α, β)
 
-αs = LinRange(0, 6, 17)
-φs = [-.8, -1/sqrt(2), -.6, -.5]
-αφ = [(α,φ) for α in αs for φ in φs]
-@time @threads for (α, bφ) in αφ
-    param = (u, bφ, α, β)
-    @time run_euler(param)
-end
+@btime run_euler(param);
+
+# αs = LinRange(0, 6, 17)
+# φs = [-.8, -1/sqrt(2), -.6, -.5]
+# αφ = [(α,φ) for α in αs for φ in φs]
+# @time @threads for (α, bφ) in αφ
+#     param = (u, bφ, α, β)
+#     @time run_euler(param)
+# end
 
 
-# TODO: How to write for loops? Should i use axes instead of 1:N
