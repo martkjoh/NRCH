@@ -1,97 +1,89 @@
 using DelimitedFiles
-using Random
+using Base.Threads
 using BenchmarkTools
-using Tullio
-using LoopVectorization
 
 const N = 200
-const M = 100_000
-const L = 10
+const M = 1_000_000
+const L = 10.
 const dx = L / N
 const dt = .1 * (dx)^4
-const frames = 100
+const frames = 1000
 const skip = div(M, frames)
 
 print("T = ", M*dt, '\n')
-param_names = ["u, -r", "bφ", "a", "b"]
+param_names = ["u, -r", "phibar", "a", "b"]
 
-i = range(1, N)
-DD = zeros((N, N))
-for i in range(1, N)
-    DD[i, i] = - 2 / dx^2
-    DD[i, i%N + 1] = 1 / dx^2
-    DD[i%N + 1, i] = 1 / dx^2
-end
 
-∇² = DD
-∇²dt = DD*dt
-eps = [0 .1; -.1 0] 
+@inline ind(i) = mod(i-1, N)+1
+@inline ∇²(A, dx, i) =  (A[ind(i+1)] + A[ind(i-1)] - 2*A[i]) / dx^2
 
-function euler1!(
-    δφ::Array{Float64, 2}, 
+function euler!(
     φ::Array{Float64, 2}, 
-    temp::Array{Float64, 2}, 
+    μ::Array{Float64, 2},
+    δφ::Array{Float64, 2}, 
     param::NTuple{4, Float64}
     )
-    u, bφ, α, β = param
-    randn!(temp)
-
-    @turbo @. δφ = - u * φ
-    @turbo @. @views δφ += u * (φ[:,1]^2 + φ[:,2]^2 ) * φ
-    @turbo δφ .-= ∇² * φ
-    @turbo @. @views δφ[:, 1] += α * φ[:, 2]
-    @turbo @. @views δφ[:, 2] -= α * φ[:, 1]
-    @turbo @. δφ += β * temp
-    @turbo δφ .= ∇²dt * δφ
-end
-
-function euler2!(
-    δφ::Array{Float64, 2}, 
-    φ::Array{Float64, 2}, 
-    temp::Array{Float64, 2}, 
-    param::NTuple{4, Float64}
-    )
-    u, bφ, a, β = param
-    randn!(temp)
     
-    @tullio δφ[x, i] = u*(-1 + ( φ[x, j] * φ[x, j] ) )* φ[x, i]
-    @tullio δφ[x, i] += -∇²[x, y] * φ[y, i]
-    @tullio δφ[x, i] += α * eps[i, j] * φ[x, j]
-    @tullio δφ[x, i] += β * temp[x, i]
-    @tullio δφ[x, i] = ∇²[x, y] * δφ[y, i] * dt
+    u, bφ, a, β = param
+    @inbounds for i in axes(φ,1)
+        @views ruφ² = u * (-1 + (φ[i, 1]^2 + φ[i, 2]^2 ))
+        @views μ[i, 1] = ruφ² * φ[i, 1] + a * φ[i, 2] - ∇²(φ[:, 1], dx, i) + β*randn(Float64)
+        @views μ[i, 2] = ruφ² * φ[i, 2] - a * φ[i, 1] - ∇²(φ[:, 2], dx, i) + β*randn(Float64) 
+    end
+    @inbounds for i in axes(φ,1)
+        @views δφ[i, 1] = ∇²(μ[:, 1], dx, i) * dt
+        @views δφ[i, 2] = ∇²(μ[:, 2], dx, i) * dt
+    end
 end
+
 
 function check(φ, i)
     n = frames//10
     if any(isnan, φ)
         throw(ErrorException("Error, NaN detected" ))
     end
+
     if (div(i,n)) - div(i-1,n) == 1
         print("\r"*"|"^div(i,n))
     end
 end
 
-function loop(param)
+function loop(param::NTuple{4, Float64})
+    nn = 2
+    x = collect(LinRange(0, L-dx, N))
+    φ = .5 * [sin.(nn*2*pi*x/L) cos.(nn*2*pi*x/L)]
+    # φ = zeros(N, 2)
     φt = zeros(frames, N, 2)
-    φ = zeros(N, 2)
+    μ = zeros(N, 2)
     δφ = zeros(N, 2)
-    temp = zeros(N, 2)
-
-    φ[:, 1] .= bφ
+    
+    φ[:,1] .+= bφ
     φt[1,:,:] .= φ
+
     
     for i in axes(φt, 1)[2:end]
         for j in 1:skip
-            euler1!(δφ, φ, temp, param)
-            # euler2!(δφ, φ, temp, param)
+            euler!(φ, μ, δφ, param)
             φ .+= δφ
         end
         check(φ, i)
         φt[i,:,:] .= φ
     end
+    
     print('\n')
     return φt
 end
+
+
+function run_euler(param::NTuple{4, Float64})
+    φt = loop(param)
+    write_file(φt, param)
+    return
+end
+
+##############
+# Utillities #
+##############
 
 function write_file(φt, param)
     filename = join(
@@ -101,16 +93,40 @@ function write_file(φt, param)
     writedlm("data/"*filename*".txt", reshape(φt, (frames, 2*N)))
 end
 
-function run_euler(param)
-    φt = loop(param)
-    # write_file(φt, param)
-    return
-end
 
-α = 0.
-bφ = -.8
+# we choose r = -us
 u = 10.
-β = 0.1
+β = .5
+bφ = -.1
+α = 2.
+
+
+# Sol 1
+# bφ = 0.
+# β = 1.
+# u = 2.
+# α = 1.
+# u = 1.
+# α = .5
+
+
+# Sol 2
+# u = 50.
+# β = 1.
+# bφ = -0.9
+# α = 0.
 
 param = (u, bφ, α, β)
+
 @time run_euler(param);
+
+# αs = LinRange(0, 6, 17)
+# φs = [-.8, -1/sqrt(2), -.6, -.5]
+# αφ = [(α,φ) for α in αs for φ in φs]
+# @time @threads for (α, bφ) in αφ
+#     param = (u, bφ, α, β)
+#     @time run_euler(param)
+# end
+
+
+ 
