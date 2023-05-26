@@ -2,8 +2,8 @@ using DelimitedFiles
 using Base.Threads
 using BenchmarkTools
 
-const N = 100
-const M = 1_000_000
+const N = 200
+const M = 4_000_000
 const L = 10.
 const dx = L / N
 const dt = .1 * (dx)^4
@@ -120,7 +120,7 @@ param = (u, bφ, α, β)
 
 # @time run_euler(param);
 
-αs = [0, 2., 5.]
+αs = [0, 2.5, 5., 7.5]
 φs = [0, -.2, -.4, -.6, -.8]
 αφ = [(α,φ) for α in αs for φ in φs]
 @time @threads for (α, bφ) in αφ

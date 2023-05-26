@@ -16,7 +16,7 @@ folder = "data/assym/"
 folder_vid = "done/fig/vid/assym/"
 
 
-N = 100
+N = 200
 L = 10.
 dx = L/N
 dt = .1 * (dx)**4
@@ -117,7 +117,7 @@ def make_anim(filename):
 
     add_phase(ax[2], phibar, a/u)
     
-    n = 10
+    n = 4
 
     def animate(m):
         m = m*n
@@ -136,7 +136,7 @@ def make_anim(filename):
 
     anim = animation.FuncAnimation(fig, animate,  interval=10, frames=frames//n)
     # plt.show()
-    anim.save(folder_vid+filename+".mp4", fps=10)
+    anim.save(folder_vid+filename+".mp4", fps=30)
 
 
 fnames = get_all_filenames_in_folder(folder)
@@ -144,7 +144,7 @@ fnames = get_all_filenames_in_folder(folder)
 # make_anim(fnames[0])
 
 from multiprocessing import Pool
-with Pool(15) as pool:
+with Pool(12) as pool:
     pool.map(make_anim, fnames)
 
 # [make_anim(fname) for fname in fnames]
