@@ -98,4 +98,4 @@ save_opt = dict(
     dpi=300
 )
 
-plt.savefig('reimann.pdf', **save_opt)
+plt.savefig('fig/reimann.pdf', **save_opt)
