@@ -3,15 +3,16 @@ using Base.Threads
 using BenchmarkTools
 
 const N = 200
-const M = 4_000_000
+const M = 200_000_000
 const L = 10.
 const dx = L / N
 const dt = .1 * (dx)^4
 const frames = 1000
 const skip = div(M, frames)
+@assert skip*frames == M
 
 print("T = ", M*dt, '\n')
-param_names = ["u, -r", "phi1", "phi2", "a", "b"]
+param_names = ["u, -r", "a", "b", "phi1", "phi2"]
 
 
 @inline ind(i) = mod(i-1, N)+1
@@ -48,7 +49,7 @@ function check(φ, i)
 end
 
 function loop(param::NTuple{5, Float64})
-    u, φ1, φ2, a, β = param
+    u, a, β, φ1, φ2 = param
     nn = 1
     x = collect(LinRange(0, L-dx, N))
     φ = .1 * [sin.(nn*2*pi*x/L) cos.(nn*2*pi*x/L)]
@@ -57,7 +58,7 @@ function loop(param::NTuple{5, Float64})
     μ = zeros(N, 2)
     δφ = zeros(N, 2)
     
-    φ[:,1] .+= φ1 
+    φ[:,1] .+= φ1
     φ[:,2] .+= φ2
     φt[1,:,:] .= φ
 
@@ -87,32 +88,24 @@ end
 
 function write_file(φt, param)
     filename = join(
-        param_names[i] * '=' * string(param[i]) * '_' 
+        param_names[i] * '=' * string(param[i]) * "_"
         for i in range(1, length(param_names))
         )[1:end-1]
+    filename = filename * "_N=" * string(N)
+    filename = filename * "_dt=" * string(dt * skip)
     writedlm("data/assym/"*filename*".txt", reshape(φt, (frames, 2*N)))
 end
 
 
-# we choose r = -us
-u = 10.
-β = .5
-φ1 = -0.
-φ2 = .1
-α = 1.
 
-param = (u, φ1, φ2, α, β)
-
+# param = (10., 1., 1., -.2, -.1)
 # @time run_euler(param);
 
-αs = [0, 2.5, 5., 7.5, 10, 12.5]
-φ1s = [0., -.2, -.4, -.6, -.8, -1., -1.2]
-φ2s = [0., -.2, -.4, -.6, -.8, -1., -1.2]
-αφ = [(α,φ1,φ2) for α in αs for φ1 in φ1s for φ2 in φ1s]
+u, β = 10., 1.
+αs = [0, 5., 10, 15]
+φs = -[[0, 0], [0.3, 0.3], [.6, .6], [.9, .9], [1.2, 1.2], [0, .3], [0, .6], [0, .9], [0, 1.2]]
+αφ = [(α, φ[1], φ[2]) for α in αs for φ in φs]
 @time @threads for (α, φ1, φ2) in αφ
-    param = (u, φ1, φ2, α, β)
+    param = (u, α, β, φ1, φ2)
     @time run_euler(param)
 end
-
-
- 

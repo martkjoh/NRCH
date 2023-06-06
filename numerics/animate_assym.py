@@ -10,21 +10,24 @@ plt.rc("font", family="serif", size=16)
 plt.rc("mathtext", fontset="cm")
 plt.rc("lines", lw=2)
 
-param_names = ["u, -r", "phi1", "phi2", "a", "b"]
+param_names = ["u, -r", "a", "b", "phi1", "phi2", "N", "dt"]
+param_title = ["u, -r", "\\alpha", "\\beta", "{\\varphi_1}", "\\varphi_2", "N", "\\Delta t"]
 
 folder = "data/assym/"
 folder_vid = "numerics/vid/assym/"
 
-
-N = 200
+# N = 200
 L = 10.
-dx = L/N
-dt = .1 * (dx)**4
+# dx = L/N
+# dt = .1 * (dx)**4
 frames = 1000
 
 
 def filename_from_param(param):
     return ''.join(param_names[i] + '=' + str(param[i]) + '_' for i in range(len(param_names)))[:-1]
+
+def title_from_param(param):
+    return "$" + ''.join(param_title[i] + '=' + "%.3f" % param[i] + '\\quad' for i in range(len(param_names))) + "$"
 
 def get_all_filenames_in_folder(folder_path):
     """
@@ -57,7 +60,11 @@ def param_from_filename(filename):
 def load_file(filename):
     file = folder+filename+'.txt'
     param = param_from_filename(filename)
-    u, phi1, phi2, a, β = param
+
+    u, a, b, phi1, phi2, N, dt = param
+    N = int(N)
+    param = u, a, b, phi1, phi2, N, dt
+
     phit = np.loadtxt(file)
     frames = len(phit)
     phit = phit.reshape((frames, 2, N))
@@ -65,7 +72,7 @@ def load_file(filename):
     return x, phit, param
 
 def add_phase(ax, param):
-    u, phi1, phi2, a, β = param
+    u, a, b, phi1, phi2, N, dt = param
     alpha = a / u
     L = 1.5
 
@@ -88,12 +95,13 @@ def add_phase(ax, param):
         ls = '--' if i==1 else "-"
         ax.contour(u, v, f[i](u, v, alpha), levels=[0], colors=color, linestyles=ls)
 
-    ax.plot(phi1 , phi2, 'ro')
+    ax.plot(phi2, phi1, 'ro')
 
     ax.set_xlim(-L, L)
     ax.set_ylim(-L, L)
 
-def plot_error(phit):
+def plot_error(phit, param):
+    u, a, b, phi1, phi2, N, dt = param
     fig, ax = plt.subplots()
     pt = np.einsum('tix->ti', phit)
     dpt = (pt[1:] - pt[:-1])/dt
@@ -107,23 +115,23 @@ def make_anim(filename):
     filename = filename[:-4]
 
     x, phit, param = load_file(filename)
-    u, phi1, phi2, a, b = param
-    plot_error(phit)
+    u, a, b, phi1, phi2, N, dt = param
+    # plot_error(phit, param)
 
-    fig = plt.figure(layout="constrained", figsize=(12, 6))
-    gs = GridSpec(2, 2, figure=fig)
+    fig = plt.figure(layout="constrained", figsize=(12, 6.5))
+    gs = GridSpec(2, 3, figure=fig)
     ax1 = fig.add_subplot(gs[0, 0])
-    ax2 = fig.add_subplot(gs[:, 1])
+    ax2 = fig.add_subplot(gs[:, 1:3])
     ax3 = fig.add_subplot(gs[1, 0]) 
     ax = [ax1, ax2, ax3]
-    fig.suptitle(", ".join(filename_from_param(param).split('_')))
+    fig.suptitle(title_from_param(param))
 
     l1, = ax[0].plot([], [], 'r-', label='$\\varphi_1$')
     l2, = ax[0].plot([], [], 'k-', label='$\\varphi_2$')
     ax[0].plot([0, L], [phi1, phi1], 'r--')
     ax[0].plot([0, L], [phi2, phi2], 'k--')
 
-    prange = 1.2
+    prange = 1.5
 
     ax[0].set_xlim(0, L) 
     ax[0].set_ylim(-prange, prange)
@@ -132,7 +140,7 @@ def make_anim(filename):
 
     t = np.linspace(0, 2*pi)
     m1, = ax[1].plot([], [], 'r-..')
-    ax[1].plot(phi1, phi2, 'ro')
+    ax[1].plot(phi2, phi1, 'ro')
     ax[1].plot(np.cos(t), np.sin(t), 'k--') 
     ax[1].set_xlim(-prange, prange)
     ax[1].set_ylim(-prange, prange)
@@ -157,15 +165,15 @@ def make_anim(filename):
         return l1, l2, m1
 
     anim = animation.FuncAnimation(fig, animate,  interval=10, frames=frames//n)
-    # plt.show()
-    anim.save(folder_vid+filename+".mp4", fps=30)
+    plt.show()
+    # anim.save(folder_vid+filename+".mp4", fps=15)
 
 
 fnames = get_all_filenames_in_folder(folder)
 
-# make_anim(fnames[0])
+# make_anim(fnames[1])
 
 from multiprocessing import Pool
 with Pool(12) as pool:
     pool.map(make_anim, fnames)
-
+    plt.close()
