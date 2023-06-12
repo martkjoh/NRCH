@@ -9,12 +9,10 @@ os.chdir('/home/mjohnsrud/repos/NRCH/blender')
 
 name = 'from_data'
 
-# if bpy.context.object.mode == 'EDIT':
-#     bpy.ops.object.mode_set(mode='OBJECT')
 bpy.ops.object.select_all(action='DESELECT')
 
 
-names = ['spinodal', 'stability', 'exceptional']
+names = ['spinodal1', "spinodal2", 'stability', 'exceptional']
 
 
 def add_obj(name, vertices, faces, edges):

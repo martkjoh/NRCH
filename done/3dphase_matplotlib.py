@@ -127,5 +127,5 @@ save_opt = dict(
 ax.azim=ang[0]
 ax.elev=ang[1]
 
-fig.savefig("done/fig/surf3.svg", **save_opt)
+# fig.savefig("done/fig/surf3.svg", **save_opt)
 plt.show()

@@ -1,7 +1,7 @@
 import numpy as np
 from numpy import sqrt
 
-N = 500
+N = 200
 th = 1
 k = sqrt(th)
 
@@ -40,27 +40,24 @@ def save(data, edges, faces, name):
 def spin():
     name='spinodal'
 
-    x0 = np.linspace(-k, k, N)
-    r0 = np.linspace(-th, 0.001, N)
-    x, r = np.meshgrid(x0, r0)
+    u0 = np.linspace(0, +1, N)
+    v0 = np.linspace(0, -1, N)
 
-    a = np.sqrt(x**2**2 - (r + 2*x**2)**2 + 0j).real
-    a[0:2]=0
-    edge = np.zeros_like(a, dtype=bool)
-    for i in (
-        (0, 1), (0, -1), (1, 0), (-1, 0), 
-        (1, 1), (1, -1), (-1, 1), (-1, -1), 
-        (0, 2), (0, -2), (2, 0), (-2, 0)
-        ):
-        edge = edge | np.roll(a!=0, i, (0, 1))
+    u, v = np.meshgrid(u0, v0)
 
-    mask = edge==0
-    mask[0:2] = True
+    r = v
+    x = sqrt(- (1 + 2*u)/3 * r)
+    a = sqrt(x**4 - (r + 2*x**2)**2 + 0j).real
 
     data = list_to_data(x, r, a)
+    mask = np.zeros_like(a)
     faces = faces_from_data(data, N, mask)
+    save(data, [], faces, name+"1")
 
-    save(data, [], faces, name)
+    data = list_to_data(-x, r, a)
+    mask = np.zeros_like(a)
+    faces = faces_from_data(data, N, mask)
+    save(data, [], faces, name+"2")
 
 
 def stab():
