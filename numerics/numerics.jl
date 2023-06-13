@@ -2,8 +2,8 @@ using DelimitedFiles
 using Base.Threads
 using BenchmarkTools
 
-const N = 200
-const M = 1_000_000
+const N = 100
+const M = 2_000_000
 const L = 10.
 const dx = L / N
 const dt = .1 * (dx)^4
@@ -18,9 +18,9 @@ param_names = ["u, -r", "phibar", "a", "b"]
 @inline ∇²(A, dx, i) =  (A[ind(i+1)] + A[ind(i-1)] - 2*A[i]) / dx^2
 
 function euler!(
-    φ::Array{Float64, 2}, 
+    φ::Array{Float64, 2},
     μ::Array{Float64, 2},
-    δφ::Array{Float64, 2}, 
+    δφ::Array{Float64, 2},
     param::NTuple{4, Float64}
     )
     
@@ -97,7 +97,7 @@ end
 # we choose r = -us
 u = 10.
 β = .5
-bφ = -.1
+bφ = -.4
 α = 2.
 
 

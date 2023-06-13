@@ -13,10 +13,10 @@ plt.rc("lines", lw=2)
 param_names = ["u, -r", "phibar", "a", "b"]
 
 folder = "data/"
-folder_vid = "done/fig/vid/"
+folder_vid = "vid/"
 
 
-N = 200
+N = 100
 L = 10.
 dx = L/N
 dt = .1 * (dx)**4
@@ -100,6 +100,9 @@ def add_phase(ax, phibar, alpha):
     ax.set_ylim(0, .8)
     ax.set_xlim(-1, .1)
 
+def plot_J(ax, phit, param):
+    print(phit)
+
 
 def plot_error(phit):
     fig, ax = plt.subplots()
@@ -139,6 +142,30 @@ def plot_sol1(ax, param):
     ax.plot([0, L], [A, A], 'b--', label="$\\sqrt{(-r - (2\\pi/L)^2)/u}$")
 
 
+# i = np.arange(N)
+# D2 = np.zeros((N, N))
+# D2[i, i] = - 2 / (2*dx)**2
+# D2[i, (i+1)%N] = 1 / (2*dx)**2
+# D2[(i+1)%N, i] = 1 / (2*dx)**2
+
+ 
+# D = np.zeros((N, N))
+# D[i, (i+1)%N] = + 1 / (2 * dx)
+# D[(i+1)%N, i] = - 1 / (2 * dx)
+
+D2 = lambda J : ( 2 * J - ( np.roll(J, 1) - np.roll(J, -1) ) ) / (2 * dx)**2 
+D = lambda J : (  np.roll(J, 1) - np.roll(J, -1)  ) / (2 * dx)
+
+
+def mu(phi, param):
+    u, phibar, a, b = param
+    p2 = phi[0]**2 + phi[1]**2
+    rup2 = u * (-1 + p2 )
+    return np.array([
+        p2 * phi[0] - D2(phi[0])  + a * phi[1],
+        p2 * phi[1] - D2(phi[1])  - a * phi[0],
+    ])
+
 def make_anim(filename):
     filename = filename[:-4]
 
@@ -146,16 +173,25 @@ def make_anim(filename):
     u, phibar, a, b = param
     # plot_error(phit)
 
-    fig = plt.figure(layout="constrained", figsize=(12, 6))
-    gs = GridSpec(2, 2, figure=fig)
-    ax1 = fig.add_subplot(gs[0, 0])
+    fig = plt.figure(layout="constrained", figsize=(18, 12))
+    gs = GridSpec(3, 2, figure=fig)
+    ax1 = fig.add_subplot(gs[0, 0]) 
     ax2 = fig.add_subplot(gs[:, 1])
-    ax3 = fig.add_subplot(gs[1, 0]) 
-    ax = [ax1, ax2, ax3]
+    ax3 = fig.add_subplot(gs[2, 0])
+    ax4 = fig.add_subplot(gs[1, 0]) 
+
+    ax = [ax1, ax2, ax3, ax4]
     fig.suptitle(", ".join(filename_from_param(param).split('_')))
 
     plot_sol1(ax[0], param)
     plot_sol2(ax[0], param)
+    l6, = ax[3].plot([], [], 'r-')
+    l7, = ax[3].plot([], [], 'k-')
+    l8, = ax[3].plot([], [], 'g--') 
+
+    jj = 100
+    ax[3].set_ylim(-jj, jj)
+    ax[3].set_xlim(0, L)
 
     l1, = ax[0].plot([], [], 'r-', label='$\\varphi_1$')
     l2, = ax[0].plot([], [], 'k-', label='$\\varphi_2$')
@@ -198,9 +234,17 @@ def make_anim(filename):
 
         m1.set_data([*p[1], p[1, 0]], [*p[0], p[0, 0]])
 
+        MU = mu(p, param)
+        J1 = D(MU[0])
+        J2 = D(MU[1])
+        l6.set_data(x, J1)
+        l7.set_data(x, J2)
+        l8.set_data(x, np.sqrt(J1**2 + J2**2)) 
+
         return l1, l2, m1
 
     anim = animation.FuncAnimation(fig, animate,  interval=10, frames=frames//n)
+    plt.tight_layout()
     plt.show()
     # anim.save(folder_vid+filename+".mp4", fps=30)
     # FFwriter = animation.FFMpegWriter(fps=30) 
