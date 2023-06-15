@@ -2,67 +2,16 @@ from matplotlib import animation
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 import numpy as np
-from numpy import pi
+from numpy import pi, sqrt
 
-import os
+
+from loadfiles import *
 
 plt.rc("font", family="serif", size=16)
 plt.rc("mathtext", fontset="cm")
 plt.rc("lines", lw=2)
 
-param_names = ["u, -r", "phibar", "a", "b"]
 
-folder = "data/"
-folder_vid = "vid/"
-
-
-N = 100
-L = 10.
-dx = L/N
-dt = .1 * (dx)**4
-frames = 1000
-
-
-def filename_from_param(param):
-    return ''.join(param_names[i] + '=' + str(param[i]) + '_' for i in range(len(param_names)))[:-1]
-
-def get_all_filenames_in_folder(folder_path):
-    """
-    Returns a list of all filenames of all files in a folder.
-    """
-    filenames = []
-    for filename in os.listdir(folder_path):
-        if os.path.isfile(os.path.join(folder_path, filename)):
-            filenames.append(filename)
-    return filenames
-
-def param_dict_from_filename(s):
-    """
-    Extracts parameters from a string in the format 'value1=xxx_value2=yyy...' and
-    returns a dictionary in the format {'value1': xxx, 'value2': yyy, ...}.
-    """
-    params = {}
-    for param in s.split('_'):
-        key, value = param.split('=')
-        params[key] = float(value)
-    return params
-
-def param_from_dict(param_dict):
-    return [param_dict[key] for key in param_names]
-
-def param_from_filename(filename):
-    return param_from_dict(param_dict_from_filename(filename))
-
-
-def load_file(filename):
-    file = folder+filename+'.txt'
-    param = param_from_filename(filename)
-    u, phibar, a, b  = param
-    phit = np.loadtxt(file)
-    frames = len(phit)
-    phit = phit.reshape((frames, 2, N))
-    x = np.linspace(0, L, N)
-    return x, phit, param
 
 def add_phase(ax, phibar, alpha):
     from numpy import pi, sin, cos
@@ -100,11 +49,8 @@ def add_phase(ax, phibar, alpha):
     ax.set_ylim(0, .8)
     ax.set_xlim(-1, .1)
 
-def plot_J(ax, phit, param):
-    print(phit)
 
-
-def plot_error(phit):
+def plot_error(phit, dt):
     fig, ax = plt.subplots()
     pt = np.einsum('tix->ti', phit)
     dpt = (pt[1:] - pt[:-1])/dt
@@ -116,62 +62,29 @@ def plot_error(phit):
 
 
 def plot_sol2(ax, param):
-    u, phibar, a, b = param
-
+    u, a, b, phibar, N, dt = param
     tt = np.linspace(0, L, 1000)
-    ax.plot(
-        tt, 
-        (1 + phibar)*np.cos(2*tt/L*2*np.pi) + phibar, 
-        ":r",
-        # label="$(1 + \\bar \\varphi) \\cos 2\\varphi + \\bar\\varphi$",
-        label="$A\\cos2\\phi + c$"
-        )
-    ax.plot(
-        tt, 
-        2*np.sqrt(-phibar-phibar**2)*np.cos(tt/L*2*np.pi),
-        ":k",
-        # label="$2 \\sqrt{ \\bar\\varphi(1 - \\bar\\varphi) } \\cos^2\\varphi$",
-        label="$B\\cos^2\phi$"
-        )
+    ax.plot(tt, (1 + phibar)*np.cos(2*tt/L*2*np.pi) + phibar,":r",label="$A\\cos2\\phi + c$")
+    ax.plot(tt, 2*np.sqrt(-phibar-phibar**2)*np.cos(tt/L*2*np.pi),":k",label="$B\\cos^2\phi$")
 
 def plot_sol1(ax, param):
-    u, phibar, a, b = param
+    u, a, b, phibar, N, dt = param
     A = np.sqrt((u - (2 * np.pi / L * 2)**2)/u)
     ax.plot([0, L], [A, A], 'g--', label="$\\sqrt{(-r - (4\\pi/L)^2)/u}$")
     A = np.sqrt((u - (2 * np.pi / L )**2)/u)
     ax.plot([0, L], [A, A], 'b--', label="$\\sqrt{(-r - (2\\pi/L)^2)/u}$")
 
 
-# i = np.arange(N)
-# D2 = np.zeros((N, N))
-# D2[i, i] = - 2 / (2*dx)**2
-# D2[i, (i+1)%N] = 1 / (2*dx)**2
-# D2[(i+1)%N, i] = 1 / (2*dx)**2
-
- 
-# D = np.zeros((N, N))
-# D[i, (i+1)%N] = + 1 / (2 * dx)
-# D[(i+1)%N, i] = - 1 / (2 * dx)
-
-D2 = lambda J : ( 2 * J - ( np.roll(J, 1) - np.roll(J, -1) ) ) / (2 * dx)**2 
-D = lambda J : (  np.roll(J, 1) - np.roll(J, -1)  ) / (2 * dx)
-
-
-def mu(phi, param):
-    u, phibar, a, b = param
-    p2 = phi[0]**2 + phi[1]**2
-    rup2 = u * (-1 + p2 )
-    return np.array([
-        p2 * phi[0] - D2(phi[0])  + a * phi[1],
-        p2 * phi[1] - D2(phi[1])  - a * phi[0],
-    ])
-
-def make_anim(filename):
+def make_anim(folder, filename):
     filename = filename[:-4]
 
-    x, phit, param = load_file(filename)
-    u, phibar, a, b = param
-    # plot_error(phit)
+    phit, xit, param = load_file(folder, filename)
+    u, a, b, phibar, N, dt = param
+    L = 10
+    dx = L / N
+    x = np.linspace(0, L, N)
+    D2 = lambda J : ( np.roll(J, 1, axis=-1) + np.roll(J, -1, axis=-1) - 2 * J ) / (dx)**2 
+    # plot_error(phit, dt)
 
     fig = plt.figure(layout="constrained", figsize=(18, 12))
     gs = GridSpec(3, 2, figure=fig)
@@ -183,22 +96,22 @@ def make_anim(filename):
     ax = [ax1, ax2, ax3, ax4]
     fig.suptitle(", ".join(filename_from_param(param).split('_')))
 
-    plot_sol1(ax[0], param)
-    plot_sol2(ax[0], param)
-    l6, = ax[3].plot([], [], 'r-')
-    l7, = ax[3].plot([], [], 'k-')
-    l8, = ax[3].plot([], [], 'g--') 
+    # plot_sol1(ax[0], param)
+    # plot_sol2(ax[0], param)
 
-    jj = 100
+    l6, = ax[3].plot([], [], 'r-')
+    l7, = ax[3].plot([], [], 'k-.')
+    l8, = ax[3].plot([], [], 'g--') 
+    l9, = ax[3].plot([], [], 'r-.')
+
+    jj = 40
     ax[3].set_ylim(-jj, jj)
     ax[3].set_xlim(0, L)
 
-    l1, = ax[0].plot([], [], 'r-', label='$\\varphi_1$')
+    l1, = ax[0].plot([], [], 'r.', label='$\\varphi_1$')
     l2, = ax[0].plot([], [], 'k-', label='$\\varphi_2$')
     ax[0].plot([0, L], [phibar, phibar], 'r--')
     ax[0].plot([0, L], [0, 0], 'k--')
-
-
 
     ax[0].set_xlim(0, L) 
     ax[0].set_ylim(-1.2, 1.2)
@@ -208,24 +121,28 @@ def make_anim(filename):
 
     t = np.linspace(0, 2*pi)
     prange = 1.2
-    m1, = ax[1].plot([], [], 'r-..')
+    m1, = ax[1].plot([], [], 'r.-')
     ax[1].plot(0, phibar, 'ro')
     ax[1].plot(np.cos(t), np.sin(t), 'k--') 
     ax[1].set_xlim(-prange, prange)
     ax[1].set_ylim(-prange, prange)
 
-
     add_phase(ax[2], phibar, a/u)
     
-    n = 4
+    n = 20
 
-    def animate(m):
+    p2 =  np.sum(phit[0]**2, axis=0)
+    F0 = np.zeros(len(phit))
+    F = u * (- p2 / 2 + p2**2 / 4 ) - p2 * D2(p2) / 2
+    F0[0] = np.sum(F) *dx
+    frames = len(phit)
 
+
+    def animate(m, F0):
         m = m*n
         n2 = frames//10
         txt = 'progress:' + (m+1)//n2*'|'
         l5.set_text(txt)
-
 
         p = phit[m]
         l1.set_data(x, p[0])
@@ -234,16 +151,26 @@ def make_anim(filename):
 
         m1.set_data([*p[1], p[1, 0]], [*p[0], p[0, 0]])
 
-        MU = mu(p, param)
-        J1 = D(MU[0])
-        J2 = D(MU[1])
-        l6.set_data(x, J1)
-        l7.set_data(x, J2)
-        l8.set_data(x, np.sqrt(J1**2 + J2**2)) 
+        p2 =  np.sum(p**2, axis=0)
+        dF = u * (-1 + p2 ) * p - D2(p)
+        ap = a * np.array([p[1], -p[0]])
+        mu = dF + ap
 
-        return l1, l2, m1
+        fdot = np.sum(D2(mu) * dF, axis=0)
+        Fdot = np.sum(fdot) * dx
+        if m>0:
+            F0[m] = F0[m-1] + Fdot * dt
 
-    anim = animation.FuncAnimation(fig, animate,  interval=10, frames=frames//n)
+        F1 = u * (- p2 / 2 + p2**2 / 4 ) - p2 * D2(p2) / 2
+        F1 = np.sum(F1) * dx
+
+        l6.set_data(x, fdot)
+        l7.set_data([0, L], F0[m] * np.ones(2))
+        l8.set_data([0, L], F1 * np.ones(2))
+        l9.set_data([0, L], Fdot * np.ones(2))
+ 
+
+    anim = animation.FuncAnimation(fig, animate,  interval=10, frames=frames//n, repeat=False, fargs=[F0,])
     plt.tight_layout()
     plt.show()
     # anim.save(folder_vid+filename+".mp4", fps=30)
@@ -251,12 +178,14 @@ def make_anim(filename):
     # anim.save("done/fig/vid/"+filename+".mp4", writer=FFwriter)
 
 
+folder = "data/sym/"
+folder_vid = "numerics/vid/"
+
 fnames = get_all_filenames_in_folder(folder)
 
-# make_anim(fnames[0])
+[make_anim(folder, fname) for fname in fnames]
+
 
 # from multiprocessing import Pool
 # with Pool(4) as pool:
 #     pool.map(make_anim, fnames)
-
-[make_anim(fname) for fname in fnames]

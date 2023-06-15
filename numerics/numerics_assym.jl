@@ -3,7 +3,7 @@ using Base.Threads
 using BenchmarkTools
 
 const N = 200
-const M = 200_000_000
+const M = 2_000_000
 const L = 10.
 const dx = L / N
 const dt = .1 * (dx)^4

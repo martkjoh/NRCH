@@ -16,10 +16,7 @@ param_title = ["u, -r", "\\alpha", "\\beta", "{\\varphi_1}", "\\varphi_2", "N", 
 folder = "data/assym/"
 folder_vid = "numerics/vid/assym/"
 
-# N = 200
 L = 10.
-# dx = L/N
-# dt = .1 * (dx)**4
 frames = 1000
 
 
@@ -55,7 +52,6 @@ def param_from_dict(param_dict):
 
 def param_from_filename(filename):
     return param_from_dict(param_dict_from_filename(filename))
-
 
 def load_file(filename):
     file = folder+filename+'.txt'
