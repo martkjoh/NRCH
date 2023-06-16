@@ -3,20 +3,21 @@ using Base.Threads
 using BenchmarkTools
 using Random
 
-const N = 200
-const M = 100_000_000
+const N = 150
+const M = 30_000_000
 const L = 10.
 const dx = L / N
 const dt = round(.1 * (dx)^4; sigdigits=6)
-const frames = 10_000
+const frames = 1_000
 const skip = div(M, frames)
 
-print("T = ", M*dt, '\n')
+print("T = ", round(M*dt; sigdigits=6), '\n')
 param_names = ["u, -r", "a", "b", "phi"]
 
 
 @inline ind(i) = mod(i-1, N)+1
-@inline ∇²(A, dx, i) =  (A[ind(i+1)] + A[ind(i-1)] - 2*A[i]) / (dx)^2
+@inline ∇²(A, dx, i) =  (A[ind(i+2)] + A[ind(i-2)] - 2*A[i]) / (2*dx)^2
+# @inline ∇²(A, dx, i) =  (A[ind(i+1)] + A[ind(i-1)] - 2*A[i]) / (dx)^2
 @inline ∇(A, dx, i) = (A[ind(i+1)] - A[ind(i-1)]) / (2*dx)
 
 function euler!(
@@ -106,7 +107,7 @@ u = 10.
 β = 5. * 1e-12
 bφ = -.707
 # bφ = -.3
-α = 4.
+α = 4.2
 D = sqrt(2 * β / (dx * dt))
 
 param = (u, α, β, bφ, D)

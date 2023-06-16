@@ -26,7 +26,7 @@ T = M * dt
 t = np.linspace(0, T + dt, M)
 L = 10.
 dx = L / N
-D2 = lambda J : ( np.roll(J, 1, axis=-1) + np.roll(J, -1, axis=-1) - 2 * J ) / dx**2 
+D2 = lambda J : ( np.roll(J, 2, axis=-1) + np.roll(J, -2, axis=-1) - 2 * J ) / (2*dx)**2 
 D = lambda J : (np.roll(J, 1, axis=-1) - np.roll(J, -1, axis=-1) ) / (2 * dx)
 
 

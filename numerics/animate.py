@@ -104,12 +104,12 @@ def make_anim(folder, filename):
     l8, = ax[3].plot([], [], 'g--') 
     l9, = ax[3].plot([], [], 'r-.')
 
-    jj = 40
+    jj = 1
     ax[3].set_ylim(-jj, jj)
     ax[3].set_xlim(0, L)
 
     l1, = ax[0].plot([], [], 'r.', label='$\\varphi_1$')
-    l2, = ax[0].plot([], [], 'k-', label='$\\varphi_2$')
+    l2, = ax[0].plot([], [], 'k.', label='$\\varphi_2$')
     ax[0].plot([0, L], [phibar, phibar], 'r--')
     ax[0].plot([0, L], [0, 0], 'k--')
 
@@ -129,7 +129,7 @@ def make_anim(folder, filename):
 
     add_phase(ax[2], phibar, a/u)
     
-    n = 20
+    n = 1
 
     p2 =  np.sum(phit[0]**2, axis=0)
     F0 = np.zeros(len(phit))
@@ -170,16 +170,16 @@ def make_anim(folder, filename):
         l9.set_data([0, L], Fdot * np.ones(2))
  
 
-    anim = animation.FuncAnimation(fig, animate,  interval=10, frames=frames//n, repeat=False, fargs=[F0,])
+    anim = animation.FuncAnimation(fig, animate,  interval=50, frames=frames//n, repeat=True, fargs=[F0,])
     plt.tight_layout()
-    plt.show()
-    # anim.save(folder_vid+filename+".mp4", fps=30)
+    # plt.show()
+       anim.save(folder_vid+filename+".mp4", fps=30)
     # FFwriter = animation.FFMpegWriter(fps=30) 
     # anim.save("done/fig/vid/"+filename+".mp4", writer=FFwriter)
 
 
 folder = "data/sym/"
-folder_vid = "numerics/vid/"
+folder_vid = "vid/"
 
 fnames = get_all_filenames_in_folder(folder)
 
