@@ -57,4 +57,5 @@ def load_file(folder, filename):
     frames = len(phit)
     phit = phit.reshape((frames, 2, N))
     xit = xit.reshape((frames-1, 2, N)) 
+    # xit = None
     return phit, xit, param

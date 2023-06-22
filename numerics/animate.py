@@ -41,7 +41,7 @@ def add_phase(ax, phibar, alpha):
     ax.fill_between(xx4, 0, 1, color=color, alpha=0.6, hatch='///', linewidth=0.0, edgecolor='#00000000')
     
     ax.plot(x, x**2, '--', color='purple', label='EL')
-    ax.plot(phibar, alpha, 'ro')
+    ax.plot(-np.abs(phibar), alpha, 'ro')
 
     ax.set_ylabel("$\\alpha/|r|$")
     ax.set_xlabel("$\\sqrt{u} \\bar \\varphi/|r|$")
@@ -84,7 +84,8 @@ def make_anim(folder, filename):
     dx = L / N
     x = np.linspace(0, L, N)
     D2 = lambda J : ( np.roll(J, 1, axis=-1) + np.roll(J, -1, axis=-1) - 2 * J ) / (dx)**2 
-    # plot_error(phit, dt)
+    D = lambda J : (np.roll(J, 1, axis=-1) - np.roll(J, -1, axis=-1) ) / (2 * dx)
+    plot_error(phit, dt)
 
     fig = plt.figure(layout="constrained", figsize=(18, 12))
     gs = GridSpec(3, 2, figure=fig)
@@ -100,16 +101,18 @@ def make_anim(folder, filename):
     # plot_sol2(ax[0], param)
 
     l6, = ax[3].plot([], [], 'r-')
-    l7, = ax[3].plot([], [], 'k-.')
+    axx = ax[3].twinx()
+    l7, = axx.plot([], [], 'k-')
     l8, = ax[3].plot([], [], 'g--') 
     l9, = ax[3].plot([], [], 'r-.')
 
-    jj = 1
+    jj = 10
     ax[3].set_ylim(-jj, jj)
     ax[3].set_xlim(0, L)
+    axx.set_ylim(-1.5, 1.5)
 
-    l1, = ax[0].plot([], [], 'r.', label='$\\varphi_1$')
-    l2, = ax[0].plot([], [], 'k.', label='$\\varphi_2$')
+    l1, = ax[0].plot([], [], 'r.-', label='$\\varphi_1$')
+    l2, = ax[0].plot([], [], 'k.-', label='$\\varphi_2$')
     ax[0].plot([0, L], [phibar, phibar], 'r--')
     ax[0].plot([0, L], [0, 0], 'k--')
 
@@ -121,15 +124,13 @@ def make_anim(folder, filename):
 
     t = np.linspace(0, 2*pi)
     prange = 1.2
-    m1, = ax[1].plot([], [], 'r.-')
+    m1, = ax[1].plot([], [], 'r--.')
     ax[1].plot(0, phibar, 'ro')
     ax[1].plot(np.cos(t), np.sin(t), 'k--') 
     ax[1].set_xlim(-prange, prange)
     ax[1].set_ylim(-prange, prange)
 
     add_phase(ax[2], phibar, a/u)
-    
-    n = 1
 
     p2 =  np.sum(phit[0]**2, axis=0)
     F0 = np.zeros(len(phit))
@@ -137,7 +138,7 @@ def make_anim(folder, filename):
     F0[0] = np.sum(F) *dx
     frames = len(phit)
 
-
+    n = 10
     def animate(m, F0):
         m = m*n
         n2 = frames//10
@@ -154,7 +155,7 @@ def make_anim(folder, filename):
         p2 =  np.sum(p**2, axis=0)
         dF = u * (-1 + p2 ) * p - D2(p)
         ap = a * np.array([p[1], -p[0]])
-        mu = dF + ap
+        mu = dF #+ ap
 
         fdot = np.sum(D2(mu) * dF, axis=0)
         Fdot = np.sum(fdot) * dx
@@ -164,18 +165,19 @@ def make_anim(folder, filename):
         F1 = u * (- p2 / 2 + p2**2 / 4 ) - p2 * D2(p2) / 2
         F1 = np.sum(F1) * dx
 
-        l6.set_data(x, fdot)
-        l7.set_data([0, L], F0[m] * np.ones(2))
-        l8.set_data([0, L], F1 * np.ones(2))
-        l9.set_data([0, L], Fdot * np.ones(2))
+        # l6.set_data(x, fdot)
+        # l7.set_data([0, L], F0[m] * np.ones(2))
+        # l8.set_data([0, L], F1 * np.ones(2))
+        # l9.set_data([0, L], Fdot * np.ones(2))
+
+        l6.set_data(x, dF[0])
+        l7.set_data(x, p[0]) 
  
 
     anim = animation.FuncAnimation(fig, animate,  interval=50, frames=frames//n, repeat=True, fargs=[F0,])
     plt.tight_layout()
-    # plt.show()
-       anim.save(folder_vid+filename+".mp4", fps=30)
-    # FFwriter = animation.FFMpegWriter(fps=30) 
-    # anim.save("done/fig/vid/"+filename+".mp4", writer=FFwriter)
+    plt.show()
+    # anim.save(folder_vid+filename+".mp4", fps=30)
 
 
 folder = "data/sym/"
@@ -188,4 +190,4 @@ fnames = get_all_filenames_in_folder(folder)
 
 # from multiprocessing import Pool
 # with Pool(4) as pool:
-#     pool.map(make_anim, fnames)
+ #     pool.map(make_anim, fnames)

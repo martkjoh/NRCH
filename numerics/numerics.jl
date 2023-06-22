@@ -3,40 +3,48 @@ using Base.Threads
 using BenchmarkTools
 using Random
 
-const N = 150
-const M = 30_000_000
+const N = 50
+const M = 2_000_000
 const L = 10.
 const dx = L / N
-const dt = round(.1 * (dx)^4; sigdigits=6)
+const dt = round(.05 * (dx)^4; sigdigits=6)
 const frames = 1_000
 const skip = div(M, frames)
+const rng = MersenneTwister(1234)
 
 print("T = ", round(M*dt; sigdigits=6), '\n')
 param_names = ["u, -r", "a", "b", "phi"]
 
 
 @inline ind(i) = mod(i-1, N)+1
-@inline ∇²(A, dx, i) =  (A[ind(i+2)] + A[ind(i-2)] - 2*A[i]) / (2*dx)^2
-# @inline ∇²(A, dx, i) =  (A[ind(i+1)] + A[ind(i-1)] - 2*A[i]) / (dx)^2
+
 @inline ∇(A, dx, i) = (A[ind(i+1)] - A[ind(i-1)]) / (2*dx)
+@inline ∇²(A, dx, i) = (A[ind(i+1)] + A[ind(i-1)] - 2*A[i]) / dx^2
+
+# @inline ∇²(A, dx, i) =  (A[ind(i+2)] + A[ind(i-2)] - 2*A[i]) / (2*dx)^2
+
+@inline ∇(A, dx, i)  = ( 8*(A[ind(i + 1)] - A[ind(i - 1)]) - (A[ind(i + 2)] - A[ind(i - 2)]) ) / (12*dx)
+@inline ∇²(A, dx, i) = ( 8*(∇(A, dx, i+1) - ∇(A, dx, i-1)) - (∇(A, dx, i+2) - ∇(A, dx, i-2)) ) / (12*dx)
+
 
 function euler!(
     φ::Array{Float64, 2},
     μ::Array{Float64, 2},
     δφ::Array{Float64, 2},
     ξ::Array{Float64, 2},
-    param::NTuple{5, Float64}
+    param::NTuple{4, Float64}
     )
-    u, α, β, bφ, D = param
+    u, α, β, bφ = param
     @inbounds for i in axes(φ,1)
         @views ruφ² = u * (-1 + (φ[i, 1]^2 + φ[i, 2]^2 ))
         @views μ[i, 1] = ruφ² * φ[i, 1] - ∇²(φ[:, 1], dx, i) + α * φ[i, 2]
         @views μ[i, 2] = ruφ² * φ[i, 2] - ∇²(φ[:, 2], dx, i) - α * φ[i, 1]
     end
-    randn!(ξ)
+    randn!(rng, ξ)
+    ξ .*= β
     @inbounds for i in axes(φ,1)
-        @views δφ[i, 1] = ( ∇²(μ[:, 1], dx, i) + D*∇(ξ[:, 1], dx, i) ) * dt
-        @views δφ[i, 2] = ( ∇²(μ[:, 2], dx, i) + D*∇(ξ[:, 2], dx, i) ) * dt
+        @views δφ[i, 1] = ( ∇²(μ[:, 1], dx, i) - ∇(ξ[:, 1], dx, i) ) * dt
+        @views δφ[i, 2] = ( ∇²(μ[:, 2], dx, i) - ∇(ξ[:, 2], dx, i) ) * dt
     end
 end
 
@@ -52,7 +60,7 @@ function check(φ, i)
     end
 end
 
-function loop(φ::Array{Float64, 2}, param::NTuple{5, Float64})
+function loop(φ::Array{Float64, 2}, param::NTuple{4, Float64})
     φt = zeros(frames, N, 2)
     μ = zeros(N, 2)
     δφ = zeros(N, 2)
@@ -68,6 +76,8 @@ function loop(φ::Array{Float64, 2}, param::NTuple{5, Float64})
             φ .+= δφ
         end
         check(φ, i)
+        # φ[:, 1] .+= ∇(ξ[:, 1], dx, i) * dt
+        # φ[:, 2] .+= ∇(ξ[:, 2], dx, i) * dt
         ξt[i-1,:,:] .= ξ
         φt[i,:,:] .= φ
     end
@@ -76,7 +86,7 @@ function loop(φ::Array{Float64, 2}, param::NTuple{5, Float64})
     return φt, ξt
 end
 
-function run_euler(param::NTuple{5, Float64})
+function run_euler(param::NTuple{4, Float64})
     x = LinRange(0, L-dx, N)
     φ = .3 * [sin.(2*pi*x/L) cos.(2*pi*x/L)]
     φt, ξt = loop(φ, param)
@@ -104,14 +114,12 @@ end
 
 # we choose r = -us
 u = 10.
-β = 5. * 1e-12
-bφ = -.707
-# bφ = -.3
-α = 4.2
-D = sqrt(2 * β / (dx * dt))
+β = .001
+bφ = .707
+bφ = 0.
+α = .1
 
-param = (u, α, β, bφ, D)
-
+param = (u, α, β, bφ)
 
 rm(write_folder, recursive=true, force=true)
 mkdir(write_folder[1:end-1])
