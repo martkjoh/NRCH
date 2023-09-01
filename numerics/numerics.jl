@@ -3,8 +3,8 @@ using Base.Threads
 using BenchmarkTools
 using Random
 
-const N = 50
-const M = 2_000_000
+const N = 100
+const M = 1_000_000
 const L = 10.
 const dx = L / N
 const dt = round(.05 * (dx)^4; sigdigits=6)
@@ -88,10 +88,9 @@ end
 
 function run_euler(param::NTuple{4, Float64})
     x = LinRange(0, L-dx, N)
-    φ = .3 * [sin.(2*pi*x/L) cos.(2*pi*x/L)]
+    φ = .3 * [sin.(-2*pi*x/L) cos.(-2*pi*x/L)]
     φt, ξt = loop(φ, param)
-    write_file(φt, ξt, param)
-    return
+    write_file(φt, ξt, param)   
 end
 
 ##############
@@ -114,10 +113,10 @@ end
 
 # we choose r = -us
 u = 10.
-β = .001
+β = 10.
 bφ = .707
 bφ = 0.
-α = .1
+α = 5.
 
 param = (u, α, β, bφ)
 
