@@ -12,7 +12,7 @@ name = 'from_data'
 bpy.ops.object.select_all(action='DESELECT')
 
 
-names = ["assym0", "assym1","assym2","assym3"]
+names = ["assym0", "assym1", "assym2", "assym3", "assym4"]
 
 def get_vs(vertices):
     u, v, a = vertices.T

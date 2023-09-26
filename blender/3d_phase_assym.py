@@ -1,7 +1,7 @@
 import numpy as np
 from numpy import sqrt, pi, cos, sin
 
-N = 200
+N = 100
 th = 1
 k = sqrt(th)
 
@@ -80,11 +80,25 @@ def assym0():
     name = "assym0"
 
     u = np.linspace(0, 1/sqrt(2), N)
-    v = np.linspace(1/sqrt(2), 1.25, N)
+    v = np.linspace(1/sqrt(2), 1.2, N)
     u, v = np.meshgrid(u, v)
     a = sqrt((u**2 - v**2)**2 - (u**2 + v**2 - 1)**2 +0j).real
 
-    mask = np.zeros_like(u)
+    mask = (v**2 - u**2)**2 - a**2 >= v**2 + u**2 - 1
+
+    data = list_to_data(v, u, a)
+    faces = faces_from_data(data, N, mask)
+    save(data, [], faces, name)
+
+def assym4():
+    name = "assym4"
+
+    u = np.linspace(0, 1/sqrt(2), N)
+    v = np.linspace(1/sqrt(2), 1.2, N)
+    u, v = np.meshgrid(u, v)
+    a = sqrt((u**2 - v**2)**2 - (u**2 + v**2 - 1)**2 +0j).real
+
+    mask = (v**2 - u**2)**2 - a**2 < v**2 + u**2 - 1
 
     data = list_to_data(v, u, a)
     faces = faces_from_data(data, N, mask)
@@ -94,7 +108,7 @@ def assym2():
     name = "assym2"
 
     th = np.linspace(0, pi/4, N)
-    a = np.linspace(1, 1.5, N)
+    a = np.linspace(1, 1.4, N)
     a, th = np.meshgrid(a, th)
 
     mask = np.zeros_like(a)
@@ -106,8 +120,8 @@ def assym2():
 def assym3():
     name = "assym3"
 
-    a = np.linspace(0, 1.5, N)
-    v = np.linspace(0, 1.5, N)
+    a = np.linspace(0, 1.4, N)
+    v = np.linspace(0, 1.4, N)
     a, v = np.meshgrid(a, v)
     u = sqrt(v**2 + a)
     mask = np.zeros_like(a)
@@ -131,5 +145,6 @@ assym0()
 assym1()
 assym2()
 assym3()
+assym4()
 CEP()
  
